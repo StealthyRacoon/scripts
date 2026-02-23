@@ -1,5 +1,4 @@
-param ([string]$url)
-
+$url = "https://sustainabletimbertasmania-admin.sharepoint.com/"
 $envFile = Join-Path $PSScriptRoot ".env"
 
 if (Test-Path $envFile) {

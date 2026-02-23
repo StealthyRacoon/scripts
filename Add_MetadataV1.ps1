@@ -4,7 +4,6 @@ param ([string]$SiteUrl)
 
 Connect-Site -Url $SiteUrl
 
-# Export-TenantLibraries
 function Get-TermSetByName {
     param (
         [Parameter(Mandatory)]
@@ -36,55 +35,78 @@ function Add-MetadataField {
         [string]$ColumnName,
         
         [Parameter(Mandatory)]
-        [string]$TermGroupName
-
-        # [Parmeter(Mandatory)]
-        # [string]$TermSetName
-        
+        [string]$TermGroupName        
     )
 
     try {
 
-        # Write-Host "termSet object type: $($termSet.GetType().FullName)"
-        # Write-Host "termSet.Id: '$($termSet.Id)'"
-        # $termSet | Format-List *
+        # Special case: Keywords = Enterprise Keywords
+        if ($ColumnName -eq "Keywords") {
 
-        # $termSet = Get-TermSetByName -TermGroup $TermGroupName -TermSetName $TermSetName
+            if (-not (Get-PnPField -List $LibraryName -Identity "TaxKeyword" -ErrorAction SilentlyContinue)) {
 
+                Add-PnPField `
+                    -List $LibraryName `
+                    -DisplayName "Keywords" `
+                    -InternalName "TaxKeyword" `
+                    -Type TaxonomyFieldTypeMulti `
+                    -AddToDefaultView
+
+                Write-Host "Enterprise Keywords column enabled." -ForegroundColor Green
+            }
+            else {
+                Write-Host "Enterprise Keywords already enabled." -ForegroundColor DarkYellow
+            }
+
+            return
+        }
+
+        # Normal Managed Metadata fields
         if (-not (Get-PnPField -List $LibraryName -Identity $ColumnName -ErrorAction SilentlyContinue)) {
+
             Add-PnPTaxonomyField `
                 -List $LibraryName `
                 -DisplayName $ColumnName `
                 -InternalName ($ColumnName -replace '\s', '') `
                 -TermSetPath "$TermGroupName|$ColumnName" `
-                -ErrorAction SilentlyContinue `
-                -AddToDefaultView 
+                -AddToDefaultView
 
             Write-Host "Managed metadata column '$ColumnName' added successfully." -ForegroundColor Green
         }
         else {
             Write-Host "Field '$ColumnName' already exists, skipping." -ForegroundColor DarkYellow
         }
-        
+
     }
     catch {
-        Write-Host "Failed to add managed metadata column '$ColumnName'." -ForegroundColor Red
+        Write-Host "Failed to add column '$ColumnName'." -ForegroundColor Red
         throw
     }
 }
 
-function Get-SiteLibraries {
 
-}
 
-$LibraryName = "Sarang Test Library"
+$LibraryName = "Organised Document Library"
 $TermGroupName = "Standard Metadata" 
 # $TermSetName = "Document Status"
 
 # Initialize-PnPTaxonomySession
 
-$columns = @("Department", "Document Type", "Coupe", "Unsure Need Help", "Keywords")
+$managedColumns = @("Department", "Document Type", "Coupe")
+$freeColumns = @("Keywords")
 
-foreach ($column in $columns) {
+foreach ($column in $managedColumns) {
     Add-MetadataField -LibraryName $LibraryName -ColumnName $column -TermGroupName $TermGroupName
 }
+
+foreach ($column in $freeColumns) {
+    Add-PnPField `
+        -List $LibraryName `
+        -DisplayName $column `
+        -InternalName ($column -replace '\s', '') `
+        -Type Text `
+        -AddToDefaultView
+}
+
+
+# Export-TenantLibraries

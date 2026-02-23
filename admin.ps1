@@ -10,6 +10,8 @@ $adminUrl = "https://sustainabletimbertasmania-admin.sharepoint.com"  # <-- CHAN
 $url = $adminUrl
 . ".\ConCert.ps1"
 
+Connect-PnP
+
 # ==============================
 # Get all site collections
 # ==============================
@@ -28,7 +30,7 @@ foreach ($site in $sites) {
 
         # Connect to the site
         $url = $site.Url
-        . ".\ConCert.ps1"
+        Connect-Site -Url $url
 
         # Add site collection admin
         Add-PnPSiteCollectionAdmin -Owners $adminUPN

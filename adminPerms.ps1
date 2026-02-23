@@ -1,8 +1,8 @@
 # ==============================
 # Variables
 # ==============================
-$adminUPN = "sarang.gadhiya@sttas.com.au"   # <-- CHANGE THIS
-$adminUrl = "https://sustainabletimbertasmania-admin.sharepoint.com"  # <-- CHANGE THIS
+$adminUPN = "syssg1@sttas.com.au"   # <-- CHANGE THIS
+$adminUrl = "https://sustainabletimbertasmania-admin.sharepoint.com"  
 $csvPath  = ".\SiteAdminVerification.csv"
 
 $results = @()
@@ -26,7 +26,7 @@ foreach ($site in $sites) {
     try {
         # Connect to site
         $url = $site.Url
-        . ".\ConCert.ps1"
+        Connect-Site -Url $url
 
         # Get site collection admins
         $admins = Get-PnPSiteCollectionAdmin

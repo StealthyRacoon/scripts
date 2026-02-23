@@ -1,18 +1,32 @@
 # param ([string]$url)
 
-$tenant = "sustainabletimbertasmania.onmicrosoft.com"
-$clientId = "2a539f71-673a-41a6-a878-77be10574006"  # App ID from Azure
-$certPath = "C:\Users\sarang.gadhiya\PnpAdminCert.pfx"
-$certPass = ConvertTo-SecureString "cjayG03s2Church!" -AsPlainText -Force
+$envFile = Join-Path $PSScriptRoot ".env"
 
-# $url = "https://sustainabletimbertasmania.sharepoint.com/teams/AdrianoTestSite/"
+if (Test-Path $envFile) {
+    Get-Content $envFile | ForEach-Object {
+        if ($_ -match '^\s*#' -or -not $_) { return }
+        $name, $value = $_ -split '=', 2
+        [System.Environment]::SetEnvironmentVariable($name, $value)
+    }
+}
+else {
+    throw ".env file not found"
+}
 
 
-function Connect-PnP{
+$TenantId = $env:TENANT
+$clientId = $env:CLIENTID
+$certPath = $env:CERTPATH
+$certPass = ConvertTo-SecureString $env:CERTPASS -AsPlainText -Force
+$TenantUrl = $env:TENANTURL
+$TenantAdminUrl = $env:TENANTADMIN
 
-    Connect-PnPOnline -Url "https://sustainabletimbertasmania.sharepoint.com/" `
+
+function Connect-PnP {
+
+    Connect-PnPOnline -Url $TenantUrl `
         -ClientId $clientId `
-        -Tenant $tenant `
+        -Tenant $TenantId `
         -CertificatePath $certPath `
         -CertificatePassword $certPass
     
@@ -22,12 +36,10 @@ function Connect-Site {
     param (
         [string]$Url
     )
-        
-    # Write-Host "Connecting to $Url"
 
     Connect-PnPOnline -Url $Url `
         -ClientId $clientId `
-        -Tenant $tenant `
+        -Tenant $TenantId `
         -CertificatePath $certPath `
         -CertificatePassword $certPass
 
@@ -37,32 +49,29 @@ function Connect-Site {
 
 function Get-TenantSites {
     Write-Host "Retrieving all site collections..." -ForegroundColor Cyan
-    Get-PnPTenantSite -IncludeOneDriveSites:$false -Detailed
+    Get-PnPTenantSite -IncludeOneDriveSites:$false -Detailed |
+    Where-Object {
+        $_.Url -notmatch "/_catalogs/" -and
+        $_.Url -notmatch "-my.sharepoint.com" -and
+        $_.Template -ne "SPSPERS"
+    }
     # Write-Host "Found $($sites.Count) sites." -ForegroundColor Green
 }
 
 function Get-TenantLibraries {
     Write-Host "Retrieving all site Libraries..." -ForegroundColor Cyan
     $sites = Get-TenantSites
-    # Initialize an array to store all libraries
+    
+    
     $allLibraries = @()
 
     foreach ($site in $sites) {
-        # Write-Host "Processing site: $($site.Url)" -ForegroundColor Yellow
 
-        # Connect to the site
         Connect-Site -Url $site.Url
-
-        # Get all document libraries (BaseTemplate 101)
-        $libraries = Get-PnPList | Where-Object { $_.BaseTemplate -eq 101 }
-
-        # Add libraries to the main array
+        $libraries = Get-PnPList | Where-Object { $_.BaseTemplate -eq 101 -and -not $_.Hidden }
         $allLibraries += $libraries
     }
 
-    # Write-Host "Found $($allLibraries.Count) libraries across $($sites.Count) sites." -ForegroundColor Green
-
-    # Return all libraries
     return $allLibraries
     
 }
@@ -88,13 +97,12 @@ function Export-TenantLibraries {
 
         # Get all document libraries (BaseTemplate 101)
         $libraries = Get-PnPList | Where-Object { 
-            $_.BaseTemplate -eq 101 -and # Only document libraries
-            # $_.ItemCount -gt 0 -and # Only libraries with items
-            $_.Title -notin @("Form Templates", "Site Assets", "Style Library", "Site Pages")  # Exclude system libraries
-
+            $_.BaseTemplate -eq 101 -and -not $_.Hidden -and 
+            $_.ItemCount -gt 0 -and 
+            $_.Title -notin @("Form Templates", "Site Assets", "Style Library", "Site Pages")  
         } 
 
-        $libraries = $libraries | Select-Object -First 30
+        # $libraries = $libraries | Select-Object -First 30
 
 
         # Add the site URL to each library object
@@ -116,4 +124,53 @@ function Export-TenantLibraries {
 
     # Return all libraries
     return $allLibraries
+}
+
+
+# function Connect-SPO {
+    
+#     $spoUrl = $env:TENANTADMIN
+#     if (-not $spoUrl) {
+#         throw "TENANTURL not found in environment. Set it to your admin center URL (e.g., https://<tenant>-admin.sharepoint.com)."
+#     }
+
+   
+#     try {
+#         if ($adminUpn -and $adminPwd) {
+#             # Use credentialed auth
+#             $secPwd = ConvertTo-SecureString $adminPwd -AsPlainText -Force
+#             $cred = New-Object System.Management.Automation.PSCredential ($adminUpn, $secPwd)
+
+#             Connect-SPOService -Url $spoUrl -Credential $cred
+#         }
+#         else {
+#             # Interactive prompt
+#             Connect-SPOService -Url $spoUrl
+#         }
+
+#         # Simple connectivity test
+#         $null = Get-SPOSite -Limit 1 -ErrorAction Stop
+#         Write-Host "Connected to SPO Admin: $spoUrl" -ForegroundColor Green
+#         return
+#     }
+#     catch {
+#         if ($i -lt $RetryCount) {
+#             throw "Connect-SPO failed after $($RetryCount+1) attempts. $($_.Exception.Message)"
+#         }
+#     }
+    
+# }
+
+function Connect-SPO {
+    
+    Connect-SPOService `
+        -Url $TenantAdminUrl`
+}
+
+function Disconnect-SPO {
+    try {
+        Disconnect-SPOService
+        Write-Host "Disconnected from SPO." -ForegroundColor Green
+    }
+    catch { }
 }
