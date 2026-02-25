@@ -1,15 +1,14 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "PowerShell: Launch Current File",
+            "name": "Run Current PS Script with Env",
             "type": "PowerShell",
             "request": "launch",
-            "script": "${file}",
-            "args": []
+            "script": "${file}",          // VS Code sends the current file
+            "args": [],                   // Arguments can be left empty; .bat handles script path
+            "cwd": "${workspaceFolder}",
+            
         }
     ]
 }

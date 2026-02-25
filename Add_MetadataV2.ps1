@@ -86,29 +86,97 @@ function Add-MetadataField {
     }
 }
 
+function Add-MetadataFields {
+    param(
+        [Parameter(Mandatory)]
+        [string]$DocumentLibrary 
+    )
+    $LibraryName = "Unorganised Document Library"
+    $TermGroupName = "Standard Metadata" 
 
+    $managedColumns = @("Department", "Document Type", "Coupe")
+    $freeColumns = @("Keywords")
 
-$LibraryName = "Unorganised Document Library"
-$TermGroupName = "Standard Metadata" 
-# $TermSetName = "Document Status"
+    foreach ($column in $managedColumns) {
+        Add-MetadataField -LibraryName $LibraryName -ColumnName $column -TermGroupName $TermGroupName
+    }
 
-# Initialize-PnPTaxonomySession
-
-$managedColumns = @("Department", "Document Type", "Coupe")
-$freeColumns = @("Keywords")
-
-foreach ($column in $managedColumns) {
-    Add-MetadataField -LibraryName $LibraryName -ColumnName $column -TermGroupName $TermGroupName
+    foreach ($column in $freeColumns) {
+        Add-PnPField `
+            -List $LibraryName `
+            -DisplayName $column `
+            -InternalName ($column -replace '\s', '') `
+            -Type Text `
+            -AddToDefaultView
+    }
 }
 
-foreach ($column in $freeColumns) {
-    Add-PnPField `
-        -List $LibraryName `
-        -DisplayName $column `
-        -InternalName ($column -replace '\s', '') `
-        -Type Text `
-        -AddToDefaultView
+
+function LibrariesThatWillBeProcessed {
+    param (
+        [string]$SiteUrl,
+        [array]$Libraries,
+        [string]$ExportPath
+    )
+
+    $results = @()
+
+    foreach ($library in $Libraries) {
+
+        # Build full library URL
+        $libraryUrl = $SiteUrl.TrimEnd('/') + $library.RootFolder.ServerRelativeUrl
+
+        $results += [PSCustomObject]@{
+            SiteUrl      = $SiteUrl
+            LibraryTitle = $library.Title
+            LibraryUrl   = $libraryUrl
+        }
+    }
+
+    # Append if file exists, otherwise create new
+    if (Test-Path $ExportPath) {
+        $results | Export-Csv -Path $ExportPath -NoTypeInformation -Append
+    }
+    else {
+        $results | Export-Csv -Path $ExportPath -NoTypeInformation
+    }
+
+    Write-Host "Exported $($results.Count) libraries for $SiteUrl"
 }
 
 
-# Export-TenantLibraries
+function Process-SitesFromCsv {
+    param (
+        [string]$CsvPath,
+        [string]$ExportPath
+    )
+
+    $rows = Get-Content -Path $CsvPath
+
+    foreach ($siteUrl in $rows) {
+
+        $siteUrl = $siteUrl.TrimEnd('/')
+        Write-Host "`nConnecting to $siteUrl..."
+
+        try {
+            Connect-Site -Url $siteUrl
+
+            # Get all visible document libraries
+            $librariesToProcess = Get-PnPList | Where-Object {
+                $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false
+            }
+
+            LibrariesThatWillBeProcessed -SiteUrl $siteUrl `
+                -Libraries $librariesToProcess `
+                -ExportPath $ExportPath
+        }
+        catch {
+            Write-Warning "Failed processing $siteUrl. Error: $_"
+        }
+    }
+}
+
+
+Process-SitesFromCsv `
+    -CsvPath "sites.csv" `
+    -ExportPath "IteratedLibraries.csv"
