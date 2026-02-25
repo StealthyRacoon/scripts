@@ -20,6 +20,7 @@ $certPath = $env:CERTPATH
 $certPass = ConvertTo-SecureString $env:CERTPASS -AsPlainText -Force
 $TenantUrl = $env:TENANTURL
 $TenantAdminUrl = $env:TENANTADMIN
+$Thumbprint = $env:THUMBPRINT
 
 
 function Connect-PnP {
@@ -173,4 +174,9 @@ function Disconnect-SPO {
         Write-Host "Disconnected from SPO." -ForegroundColor Green
     }
     catch { }
+}
+
+function Connect-Graph {
+    Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -CertificateThumbprint $Thumbprint
+    Write-Host "Connected to graph." -ForegroundColor Green
 }
