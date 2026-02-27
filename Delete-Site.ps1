@@ -5,6 +5,16 @@ Install-Module PnP.PowerShell -Scope CurrentUser
 Import-Module PnP.PowerShell
 
 
+# https://sustainabletimbertasmania.sharepoint.com/sites/pwa
+# https://sustainabletimbertasmania.sharepoint.com/teams/boardpapertraining
+# https://sustainabletimbertasmania.sharepoint.com/teams/BusinessSystemsSystemsAccounts
+# https://sustainabletimbertasmania.sharepoint.com/teams/IT_Test_Playground
+# https://sustainabletimbertasmania.sharepoint.com/teams/PaperMill
+# https://sustainabletimbertasmania.sharepoint.com/teams/Testplan
+# https://sustainabletimbertasmania.sharepoint.com/teams/ITS-Helpdesk
+# https://sustainabletimbertasmania.sharepoint.com/teams/KeyAndLock
+# https://sustainabletimbertasmania.sharepoint.com/teams/SEC_EXT_PA_PBM
+# https://sustainabletimbertasmania.sharepoint.com/teams/SMSTestingV1
 
 
 
