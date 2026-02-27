@@ -1,5 +1,7 @@
 # param ([string]$url)
 
+
+# Import-Module Microsoft.Online.SharePoint.PowerShell
 $envFile = Join-Path $PSScriptRoot ".env"
 
 if (Test-Path $envFile) {
@@ -41,8 +43,7 @@ function Connect-Site {
     Connect-PnPOnline -Url $Url `
         -ClientId $clientId `
         -Tenant $TenantId `
-        -CertificatePath $certPath `
-        -CertificatePassword $certPass
+        -Thumbprint $Thumbprint
 
     Write-Host "Connected to $Url" -ForegroundColor Green
 }
