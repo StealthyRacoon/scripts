@@ -1,0 +1,10 @@
+-- database: ./Permissions.db
+SELECT
+    *
+FROM
+    SharePointPermissions
+WHERE
+    URL = "https://sustainabletimbertasmania.sharepoint.com"
+ORDER BY
+    Permission,
+    GivenThrough;
