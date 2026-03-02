@@ -34,43 +34,13 @@ $Thumbprint = $env:THUMBPRINT
 
 Import-Module Microsoft.Graph.Authentication
 
-Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -CertificateThumbprint $Thumbprint
-# Write-Host $Thumbprint
+# Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -CertificateThumbprint $Thumbprint
 
-# Connect-Graph
+# Example: Apply label to a Team/Group
+Connect-MgGraph -Scopes "Group.ReadWrite.All" -UseDeviceCode
 
-# Resolve site and the drive (library) id
-$siteObj = Get-MgSite -Search $SiteUrl | Where-Object { $_.WebUrl -eq $SiteUrl }
-$drive = Get-MgSiteDrive -SiteId $siteObj.Id | Where-Object { $_.Name -eq $LibraryTitle }
+# # Find the group
+# $group = Get-MgGroup -Filter "displayName eq 'Project Team'"
 
-# $drive
-
-# Recursively traverse folders and label supported files (Office + PDF)
-function Set-LabelRecursively {
-    param($DriveId, $ParentId)
-
-    $DriveID
-    $ParentId
-
-    # Get all files directly under the folder
-    $items = Get-MgDriveItemChild -DriveId $DriveId -DriveItemId $folder.Id -All |
-    Where-Object { $_.File }   # only files
- 
-    # Apply the label (filter to supported extensions to avoid noise)
-    $valid = @('.docx', '.xlsx', '.pptx', '.pdf')  # typical supported types
-    foreach ($i in $items) {
-        $ext = [io.path]::GetExtension($i.Name).ToLower()
-        if ($valid -contains $ext) {
-            Set-MgDriveItemSensitivityLabel -DriveId $DriveId -DriveItemId $i.Id -SensitivityLabelId $LabelId
-
-        }
-    }
-
-
-}
-
-
-
-
-
-Set-LabelRecursively -DriveId $drive.Id -ParentId "root"
+# # Apply the sensitivity label (replace with your label ID)
+# Update-MgGroup -GroupId $group.Id -SensitivityLabelId $Internal
