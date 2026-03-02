@@ -26,11 +26,13 @@ app.get('/api/permissions', (req, res) => {
     let query = `
         SELECT *
         FROM SharePointPermissions
+        WHERE SharePointObject = 'Site'
          `;
     let params = [];
 
     if (site) {
-        query += ` WHERE URL = ? AND SharePointObject = 'Site'`;
+        query += ` AND URL = ? `;
+        // query += ` WHERE URL = ? `;
         params.push(site);
     }
 
