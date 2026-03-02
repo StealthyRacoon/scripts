@@ -1,3 +1,7 @@
+# Run this file with 2 csv files in the same folder
+# 1. Permissions.csv - This is the raw data from Permission Report in Syskit
+# 2. SuperOwnsers.csv - A list of all sharepoint sites and the people who will approve/disapprove the permissions (Column names are "URL" and  "Name")
+
 $CsvPath = "Permissions.csv"
 $SuperOwners = "SuperOwners.csv"
 $DatabasePath = "C:\Users\sarang.gadhiya\Downloads\Scripts\Permission Audit\Permissions.db"

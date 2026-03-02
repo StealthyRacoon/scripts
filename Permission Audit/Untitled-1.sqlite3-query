@@ -4,7 +4,13 @@ SELECT
 FROM
     SharePointPermissions
 WHERE
-    URL = "https://sustainabletimbertasmania.sharepoint.com"
+    URL = "https://sustainabletimbertasmania.sharepoint.com" AND
+    ObjectType = "Site"
 ORDER BY
     Permission,
-    GivenThrough;
+    GivenThrough,
+    Name;
+
+
+
+SELECT DISTINCT URL FROM SharePointPermissions WHERE ObjectType = "Site"
