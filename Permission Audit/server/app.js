@@ -21,6 +21,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 // Get all users/permissions, optionally filtered by site
+// Do this only for all the sites in the SuperOwners table to filter out archived and deleted sites
 app.get('/api/permissions', (req, res) => {
     const site = req.query.site; // ?site=yourSiteURL
     let query = `
@@ -47,11 +48,30 @@ app.get('/api/permissions', (req, res) => {
     });
 });
 
+app.get('/api/superownerspermissions', (req, res) => {
+
+    const owner = req.query.owner;
+
+    const query = `
+        SELECT 
+            so.Name AS superOwner,
+            sp.*
+        FROM SharePointPermissions sp
+        JOIN SuperOwners so
+            ON sp.URL = so.URL
+        WHERE so.Name = ?
+    `;
+
+    db.all(query, [owner], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
 
 app.get('/api/sites', (req, res) => {
-  const ownerName = req.query.owner;
+    const ownerName = req.query.owner;
 
-  const query = `
+    const query = `
     SELECT sp.*
     FROM SharePointPermissions sp
     JOIN SuperOwners so
@@ -60,10 +80,10 @@ app.get('/api/sites', (req, res) => {
     ORDER BY sp.URL, sp.[SharePointObject];
   `;
 
-  db.all(query, [ownerName], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+    db.all(query, [ownerName], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
 });
 
 

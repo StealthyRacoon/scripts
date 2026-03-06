@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export default function LibraryModal({
     site,
@@ -8,74 +8,70 @@ export default function LibraryModal({
     decisions,
     setDecisions,
 }) {
+    const [expandedPermissions, setExpandedPermissions] = useState({});
+    const [expandedGroups, setExpandedGroups] = useState({});
     const [selectedRows, setSelectedRows] = useState({});
     const [bulkAction, setBulkAction] = useState("");
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-    const handleSort = (key) => {
-        let direction = "asc";
-        if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
-        setSortConfig({ key, direction });
-    };
+    // Group data: permission → group → rows
+    const groupedData = useMemo(() => {
+        const permGroups = {};
+        libraryData.forEach((row, idx) => {
+            const perm = row.permission || "No Permission";
+            const group = row.group || "Direct";
 
-    const sortData = (data) => {
-        if (!sortConfig.key) return data;
-        return [...data].sort((a, b) => {
-            let aVal = a[sortConfig.key] || "";
-            let bVal = b[sortConfig.key] || "";
-            if (typeof aVal === "string") {
-                aVal = aVal.toLowerCase();
-                bVal = bVal.toLowerCase();
-            }
-            if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
-            if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
-            return 0;
+            if (!permGroups[perm]) permGroups[perm] = {};
+            if (!permGroups[perm][group]) permGroups[perm][group] = [];
+            permGroups[perm][group].push({ ...row, _idx: idx });
         });
-    };
+        return permGroups;
+    }, [libraryData]);
 
-    const toggleRow = (key) => {
+    const toggleSelectRow = (key) => {
         setSelectedRows((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const toggleSelectAll = () => {
-        const allSelected = libraryData.every((row, idx) => selectedRows[`${row.principal}-${idx}`]);
-        const newSelection = {};
-        libraryData.forEach((row, idx) => {
-            const key = `${row.principal}-${idx}`;
-            newSelection[key] = !allSelected;
+    const toggleSelectAllInGroup = (rows) => {
+        const allSelected = rows.every((r) => selectedRows[`${r.principal}-${r._idx}`]);
+        const newSelection = { ...selectedRows };
+        rows.forEach((r) => {
+            newSelection[`${r.principal}-${r._idx}`] = !allSelected;
         });
         setSelectedRows(newSelection);
     };
 
-    const saveDecision = (key, decision) => {
-        setDecisions((prev) => ({ ...prev, [key]: decision }));
+    const togglePermissionExpand = (perm) => {
+        setExpandedPermissions((prev) => ({ ...prev, [perm]: !prev[perm] }));
+    };
+
+    const toggleGroupExpand = (perm, group) => {
+        const key = `${perm}-${group}`;
+        setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
     const applyBulkAction = () => {
         if (!bulkAction) return;
         const updated = { ...decisions };
-        libraryData.forEach((row, idx) => {
-            const key = `${row.principal}-${idx}`;
-            if (selectedRows[key]) updated[key] = bulkAction;
+        Object.values(groupedData).forEach((groupObj) => {
+            Object.values(groupObj).forEach((rows) => {
+                rows.forEach((row) => {
+                    const key = `${row.principal}-${row._idx}`;
+                    if (selectedRows[key]) updated[key] = bulkAction;
+                });
+            });
         });
         setDecisions(updated);
-        setBulkAction(""); // reset
+        setBulkAction("");
+    };
+
+    const saveDecision = (key, value) => {
+        setDecisions((prev) => ({ ...prev, [key]: value }));
     };
 
     const submitDecisions = () => {
         console.log("Decisions submitted:", decisions);
         closeModal();
     };
-
-    const thStyle = { border: "1px solid #ccc", padding: 8, textAlign: "left" };
-    const tdStyle = { border: "1px solid #ddd", padding: 8, textAlign: "left" };
-
-    const sortIndicator = (key) => {
-        if (sortConfig.key !== key) return "⇅";
-        return sortConfig.direction === "asc" ? "▲" : "▼";
-    };
-
-    const anySelected = Object.values(selectedRows).some(Boolean);
 
     return (
         <div
@@ -107,93 +103,117 @@ export default function LibraryModal({
                 }}
             >
                 <h2 style={{ margin: 0, fontSize: 18 }}>{libraryName}</h2>
-                <button
-                    onClick={closeModal}
-                    style={{
-                        border: "none",
-                        background: "transparent",
-                        fontSize: 18,
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                    }}
-                >
-                    ✖
-                </button>
+                <button onClick={closeModal} style={{ border: "none", background: "transparent", fontSize: 18, cursor: "pointer", fontWeight: "bold" }}>✖</button>
             </div>
 
             {/* Body */}
             <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
-                {/* Bulk Actions */}
 
 
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                        <tr style={{ background: "#eee" }}>
-                            <th style={thStyle}>
-                                <input type="checkbox" onChange={toggleSelectAll} />
-                            </th>
-                            <th style={thStyle} onClick={() => handleSort("principal")}>
-                                Principal {sortIndicator("principal")}
-                            </th>
-                            <th style={thStyle} onClick={() => handleSort("permission")}>
-                                Permission {sortIndicator("permission")}
-                            </th>
-                            <th style={thStyle} onClick={() => handleSort("group")}>
-                                Given Through {sortIndicator("group")}
-                            </th>
-                            <th style={thStyle} onClick={() => handleSort("isDirect")}>
-                                Direct {sortIndicator("isDirect")}
-                            </th>
-                            <th style={thStyle}>Decision</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sortData(libraryData).map((row, idx) => {
-                            const key = `${row.principal}-${idx}`;
-                            return (
-                                <tr
-                                    key={key}
-                                    onClick={() => toggleRow(key)}
-                                    style={{
-                                        background: idx % 2 === 0 ? "#fff" : "#f9f9f9",
-                                        cursor: "pointer",
-                                    }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = "#dbe9ff")}
-                                    onMouseLeave={(e) =>
-                                        (e.currentTarget.style.background = idx % 2 === 0 ? "#fff" : "#f9f9f9")
-                                    }
+                {/* Grouped Table */}
+                {Object.entries(groupedData).map(([perm, groupObj]) => {
+                    const isPermExpanded = expandedPermissions[perm];
+                    const permRows = Object.values(groupObj).flat();
+                    const allSelectedPerm = permRows.every((r) => selectedRows[`${r.principal}-${r._idx}`]);
+
+                    return (
+                        <div key={perm} style={{ marginBottom: 20, border: "1px solid #ccc", borderRadius: 4 }}>
+                            {/* Permission Header */}
+                            <div
+                                onClick={() => togglePermissionExpand(perm)}
+                                style={{
+                                    padding: "8px 12px",
+                                    background: "#eee",
+                                    fontWeight: "bold",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                <div >
+                                    {isPermExpanded ? "▼" : "▶"} {perm}
+                                </div>
+                                {/* <button
+                                    onClick={() => toggleSelectAllInGroup(permRows)}
+                                    style={{ padding: "2px 6px", cursor: "pointer" }}
                                 >
-                                    <td style={{ textAlign: "center" }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={!!selectedRows[key]}
-                                            onChange={(e) => {
-                                                e.stopPropagation();
-                                                toggleRow(key);
-                                            }}
-                                        />
-                                    </td>
-                                    <td style={tdStyle}>{row.principal}</td>
-                                    <td style={tdStyle}>{row.permission}</td>
-                                    <td style={tdStyle}>{row.group || "-"}</td>
-                                    <td style={{ ...tdStyle, textAlign: "center" }}>{row.isDirect ? "⚠" : ""}</td>
-                                    <td style={{ ...tdStyle, textAlign: "center" }}>
-                                        <select
-                                            value={decisions[key] || ""}
-                                            onChange={(e) => saveDecision(key, e.target.value)}
-                                        >
-                                            <option value="">Select</option>
-                                            <option value="Keep">Keep</option>
-                                            <option value="Remove">Remove</option>
-                                            <option value="MoveToGroup">Move to Group</option>
-                                            <option value="Reduce">Reduce Permission</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                                    {allSelectedPerm ? "Deselect All" : "Select All"}
+                                </button> */}
+                            </div>
+
+                            {isPermExpanded &&
+                                Object.entries(groupObj).map(([group, rows]) => {
+                                    const keyGroup = `${perm}-${group}`;
+                                    const isGroupExpanded = expandedGroups[keyGroup];
+                                    const allSelectedGroup = rows.every((r) => selectedRows[`${r.principal}-${r._idx}`]);
+
+                                    return (
+                                        <div key={group} style={{ marginLeft: 15, marginTop: 8, marginBottom: 8 }}>
+                                            {/* Group Header */}
+                                            <div
+                                                onClick={() => toggleGroupExpand(perm, group)}
+                                                style={{
+                                                    padding: "6px 10px",
+                                                    background: "#f5f5f5",
+                                                    display: "flex",
+                                                    justifyContent: "space-between",
+                                                    alignItems: "center",
+                                                    cursor: "pointer",
+                                                    fontWeight: 500,
+                                                }}
+                                            >
+                                                <div >
+                                                    {isGroupExpanded ? "▼" : "▶"} {group}
+                                                </div>
+                                                {/* <button
+                                                    onClick={() => toggleSelectAllInGroup(rows)}
+                                                    style={{ padding: "2px 6px", cursor: "pointer" }}
+                                                >
+                                                    {allSelectedGroup ? "Deselect All" : "Select All"}
+                                                </button> */}
+                                            </div>
+
+                                            {/* Rows */}
+                                            {isGroupExpanded &&
+                                                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+                                                    <thead>
+                                                        <tr style={{ background: "#fff", borderBottom: "1px solid #ccc" }}>                                        
+                                                            <th style={{ border: "1px solid #ccc", padding: 6 }}><input type="checkbox" onClick={() => toggleSelectAllInGroup(rows)} /></th>
+                                                            <th style={{ border: "1px solid #ccc", padding: 6 }}>Principal</th>
+                                                            <th style={{ border: "1px solid #ccc", padding: 6 }}>Decision</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {rows.map((row) => {
+                                                            const key = `${row.principal}-${row._idx}`;
+                                                            return (
+                                                                <tr key={key} onClick={() => toggleSelectRow(key)} style={{ background: selectedRows[key] ? "#d0ebff" : "#fff", cursor: "pointer" }}>
+                                                                    <td style={{ textAlign: "center" }}>
+                                                                        <input type="checkbox" checked={!!selectedRows[key]} readOnly />
+                                                                    </td>
+                                                                    <td style={{ padding: 6 }}>{row.principal}</td>
+                                                                    <td style={{ textAlign: "center", padding: 6 }}>
+                                                                        <select value={decisions[key] || ""} onChange={(e) => saveDecision(key, e.target.value)} onClick={(e) => e.stopPropagation()}>
+                                                                            <option value="">Select</option>
+                                                                            <option value="Keep">Keep</option>
+                                                                            <option value="Remove">Remove</option>
+                                                                            <option value="MoveToGroup">Move to Group</option>
+                                                                            <option value="Reduce">Reduce Permission</option>
+                                                                        </select>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            }
+                                        </div>
+                                    );
+                                })}
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Footer */}
@@ -210,35 +230,26 @@ export default function LibraryModal({
                 }}
             >
 
-    
-                {anySelected && (
-                    <div style={{ marginBottom: 15, display: "flex", gap: 10, alignItems: "center" }}>
-                        <select
-                            value={bulkAction}
-                            onChange={(e) => setBulkAction(e.target.value)}
-                            style={{ padding: 6, borderRadius: 4, border: "1px solid #ccc" }}
-                        >
-                            <option value="">Bulk Action</option>
-                            <option value="Keep">Keep</option>
-                            <option value="Remove">Remove</option>
-                            <option value="MoveToGroup">Move to Group</option>
-                            <option value="Reduce">Reduce Permission</option>
-                        </select>
-                        <button
-                            onClick={applyBulkAction}
-                            style={{
-                                padding: "6px 14px",
-                                borderRadius: 4,
-                                border: "1px solid #ccc",
-                                background: "#f1f1f1",
-                                cursor: "pointer",
-                            }}
-                        >
-                            Apply
-                        </button>
-                    </div>
-                )}
-
+                {/* Bulk Action */}
+                <div style={{ marginBottom: 15, display: "flex", gap: 10 }}>
+                    <select
+                        value={bulkAction}
+                        onChange={(e) => setBulkAction(e.target.value)}
+                        style={{ padding: 6, borderRadius: 4, border: "1px solid #ccc" }}
+                    >
+                        <option value="">Bulk Action</option>
+                        <option value="Keep">Keep</option>
+                        <option value="Remove">Remove</option>
+                        <option value="MoveToGroup">Move to Group</option>
+                        <option value="Reduce">Reduce Permission</option>
+                    </select>
+                    <button
+                        onClick={applyBulkAction}
+                        style={{ padding: "6px 14px", borderRadius: 4, border: "1px solid #ccc", background: "#f1f1f1", cursor: "pointer" }}
+                    >
+                        Apply
+                    </button>
+                </div>
                 <button
                     onClick={submitDecisions}
                     style={{
@@ -253,6 +264,6 @@ export default function LibraryModal({
                     Submit
                 </button>
             </div>
-        </div >
+        </div>
     );
 }

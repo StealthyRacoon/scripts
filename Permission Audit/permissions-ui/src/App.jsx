@@ -19,39 +19,44 @@ export default function App() {
     }
 
     axios
-      .get(`http://localhost:4000/api/sites?owner=${owner}`)
-      .then((res) => buildSummary(res.data))
+      .get(`http://localhost:4000/api/superownerspermissions?owner=${owner}`)
+      // .get(`http://localhost:4000/api/sites?owner=${owner}`)
+      .then((res) => {
+        buildSummary(res.data)
+      })
       .catch((err) => console.error(err));
   }, [owner]);
 
   // Build summary: site -> libraries -> permissions
   const buildSummary = (rows) => {
-    const grouped = rows.reduce((acc, row) => {
-      if (!row.ObjectType?.toLowerCase().includes("library")) return acc;
+    const grouped = {};
 
+    rows.forEach((row) => {
       const site = row.URL;
       const library = row.SharePointObject;
 
-      if (!acc[site]) acc[site] = {};
-      if (!acc[site][library]) {
-        acc[site][library] = {
+      if (!site || !library) return;
+
+      if (!grouped[site]) grouped[site] = {};
+
+      if (!grouped[site][library]) {
+        grouped[site][library] = {
           permissions: [],
           directCount: 0,
         };
       }
 
       const isDirect = !row.GivenThrough || row.GivenThrough === row.Name;
-      if (isDirect) acc[site][library].directCount++;
 
-      acc[site][library].permissions.push({
+      if (isDirect) grouped[site][library].directCount++;
+
+      grouped[site][library].permissions.push({
         principal: row.Name,
         group: row.GivenThrough,
         permission: row.Permission,
         isDirect,
       });
-
-      return acc;
-    }, {});
+    });
 
     setSummary(grouped);
   };

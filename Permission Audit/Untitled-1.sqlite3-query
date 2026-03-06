@@ -4,7 +4,7 @@ SELECT
 FROM
     SharePointPermissions
 WHERE
-    URL = "https://sustainabletimbertasmania.sharepoint.com" AND
+    URL = "https://sustainabletimbertasmania.sharepoint.com/sites/Development" AND
     ObjectType = "Site"
 ORDER BY
     Permission,
@@ -13,4 +13,21 @@ ORDER BY
 
 
 
-SELECT DISTINCT URL FROM SharePointPermissions WHERE ObjectType = "Site"
+SELECT * FROM SuperOwners WHERE Name = "System Kes Haywood";
+
+
+ SELECT 
+    so.Name AS superOwner,
+    sp.*
+FROM SharePointPermissions sp
+JOIN SuperOwners so
+    ON sp.URL = so.URL
+WHERE so.Name = "Geoff Hudson"
+ORDER BY sp.URL, sp.[SharePointObject];
+
+SELECT sp.*
+FROM SharePointPermissions sp
+JOIN SuperOwners so
+    ON sp.URL LIKE so.URL || '%'
+WHERE so.Name = "System Kes Haywood"
+ORDER BY sp.URL, sp.[SharePointObject];
