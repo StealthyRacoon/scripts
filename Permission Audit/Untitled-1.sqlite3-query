@@ -31,3 +31,12 @@ JOIN SuperOwners so
     ON sp.URL LIKE so.URL || '%'
 WHERE so.Name = "System Kes Haywood"
 ORDER BY sp.URL, sp.[SharePointObject];
+
+
+SELECT 
+    so.Name AS superOwner,
+    so.*,
+    sp.*
+FROM SharePointPermissions sp
+JOIN SuperOwners so
+    ON sp.URL = so.URL

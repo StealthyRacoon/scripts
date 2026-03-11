@@ -1,93 +1,18 @@
-const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
+
+const permissionsRoutes = require("./routes/permissionsRoutes");
+const superOwnersRoutes = require("./routes/superOwnersRoutes");
 
 const app = express();
-const PORT = 4000; // or any port you like
+const PORT = 4000;
 
-// Middleware
-app.use(cors());           // allow requests from frontend
-app.use(express.json());   // parse JSON body
+app.use(cors());
+app.use(express.json());
 
-// --- Connect to SQLite ---
-const dbPath = path.join(__dirname, '../Permissions.db'); // path to your SQLite file
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Could not connect to database', err);
-    } else {
-        console.log('Connected to SQLite database');
-    }
-});
+app.use("/api", permissionsRoutes);
+app.use("/api", superOwnersRoutes);
 
-// Get all users/permissions, optionally filtered by site
-// Do this only for all the sites in the SuperOwners table to filter out archived and deleted sites
-app.get('/api/permissions', (req, res) => {
-    const site = req.query.site; // ?site=yourSiteURL
-    let query = `
-        SELECT *
-        FROM SharePointPermissions
-        WHERE SharePointObject = 'Site'
-         `;
-    let params = [];
-
-    if (site) {
-        query += ` AND URL = ? `;
-        // query += ` WHERE URL = ? `;
-        params.push(site);
-    }
-
-    query += ` ORDER BY URL, Permission, GivenThrough, Name;`;
-
-    db.all(query, params, (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-        } else {
-            res.json(rows);
-        }
-    });
-});
-
-app.get('/api/superownerspermissions', (req, res) => {
-
-    const owner = req.query.owner;
-
-    const query = `
-        SELECT 
-            so.Name AS superOwner,
-            sp.*
-        FROM SharePointPermissions sp
-        JOIN SuperOwners so
-            ON sp.URL = so.URL
-        WHERE so.Name = ?
-    `;
-
-    db.all(query, [owner], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
-});
-
-app.get('/api/sites', (req, res) => {
-    const ownerName = req.query.owner;
-
-    const query = `
-    SELECT sp.*
-    FROM SharePointPermissions sp
-    JOIN SuperOwners so
-      ON sp.URL LIKE so.URL || '%'
-    WHERE so.Name = ?
-    ORDER BY sp.URL, sp.[SharePointObject];
-  `;
-
-    db.all(query, [ownerName], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
-});
-
-
-// --- Start server ---
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

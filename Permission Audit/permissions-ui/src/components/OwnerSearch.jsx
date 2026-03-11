@@ -19,7 +19,7 @@ export default function OwnerSearch({ owner, setOwner, summary, onOpenLibrary })
     return (
         <div style={{ marginBottom: 30 }}>
             {/* Owner input */}
-            <input
+            {/* <input
                 placeholder="Enter Owner Name"
                 value={owner}
                 onChange={(e) => setOwner(e.target.value)}
@@ -30,7 +30,7 @@ export default function OwnerSearch({ owner, setOwner, summary, onOpenLibrary })
                     border: "1px solid #ccc",
                     borderRadius: 6,
                 }}
-            />
+            /> */}
 
             {/* Summary cards */}
             {totalSites > 0 ?

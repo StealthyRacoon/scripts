@@ -7,8 +7,6 @@ $csv = Import-Csv "SuperOwners.csv"
 # Get all Entra ID users once
 $allUsers = Get-PnPAzureADUser
 
-Write-Host $allUsers
-
 # Process rows
 $result = foreach ($row in $csv) {
 

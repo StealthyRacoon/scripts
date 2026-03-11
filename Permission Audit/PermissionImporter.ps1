@@ -161,9 +161,8 @@ function CreateSuperOwnerTable {
 
     Invoke-SqliteQuery -DataSource $DatabasePath -Query $createTableQuery
 
-
+# This should also include a column for email
     $SuperOwnersData = Import-Csv -Path $SuperOwners
-
     $totalRows = $SuperOwnersData.Count
     $currentRow = 0
 
