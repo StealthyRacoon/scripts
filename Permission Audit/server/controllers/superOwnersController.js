@@ -25,20 +25,21 @@ exports.getSuperOwnersPermissions = async (req, res, next) => {
 };
 
 exports.getSites = async (req, res, next) => {
-    const owner = req.query.owner;
 
     try {
 
         const sql = `
-        SELECT sp.*
+       SELECT 
+            so.Name AS superOwner,
+            so.*,
+            sp.*
         FROM SharePointPermissions sp
         JOIN SuperOwners so
-        ON sp.URL LIKE so.URL || '%'
-        WHERE so.Name = ?
-        ORDER BY sp.URL, sp.[SharePointObject];
+            ON sp.URL = so.URL
         `;
+        // WHERE so.Name = ?
 
-        const rows = await db.query(sql, [owner]);
+        const rows = await db.query(sql);
 
         res.json(rows);
     } catch (err) {
