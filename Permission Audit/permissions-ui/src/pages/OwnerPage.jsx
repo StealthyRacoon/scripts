@@ -11,6 +11,8 @@ export default function OwnerPage() {
   const [summary, setSummary] = useState({});
   const [selectedLibrary, setSelectedLibrary] = useState(null);
   const [decisions, setDecisions] = useState({});
+  const [superOwner, setSuperOwner] = useState();
+  const [allUsers, setAllUsers] = useState([]);
 
   useEffect(() => {
     if (!owner) return;
@@ -21,8 +23,37 @@ export default function OwnerPage() {
       .catch(console.error);
   }, [owner]);
 
+  useEffect(() => {
+    axios.get("http://localhost:4000/api/users")
+      .then((res) => {
+        const formatted = res.data.map(u => ({ name: u.Name, email: u.Email }));
+        const uniqueUsers = deduplicateUsers(formatted);
+        setAllUsers(uniqueUsers);
+      })
+      .catch(console.error);
+  }, []);
+
+  const deduplicateUsers = (rawUsers) => {
+    const emailMap = {};
+
+    rawUsers.forEach((user) => {
+      if (!user.email) return;
+
+      // If email not seen yet, or current name doesn't include "Owners"
+      if (!emailMap[user.email] || !emailMap[user.email].name.includes("Owners")) {
+        // Prefer non-"Owners" name if possible
+        if (!user.name.includes("Owners") || !emailMap[user.email]) {
+          emailMap[user.email] = user;
+        }
+      }
+    });
+
+    return Object.values(emailMap);
+  };
+
   const buildSummary = (rows) => {
     const grouped = {};
+    setSuperOwner(rows[0].superOwner)
 
     rows.forEach((row) => {
       const site = row.URL;
@@ -40,6 +71,7 @@ export default function OwnerPage() {
       grouped[site][library].permissions.push({
         principal: row.Name,
         group: row.GivenThrough,
+        email: row.Email,
         permission: row.Permission,
         isDirect,
       });
@@ -60,11 +92,11 @@ export default function OwnerPage() {
 
   return (
     <div style={{ padding: 40, fontFamily: "Segoe UI, sans-serif" }}>
-      <h1>SharePoint Permission Review for {owner}</h1>
+      <h1>SharePoint Permission Review for {superOwner}</h1>
 
       <OwnerSearch
-        owner={owner}
-        setOwner={() => {}}
+        owner={superOwner}
+        setOwner={() => { }}
         summary={summary}
         onOpenLibrary={openLibrary}
       />
@@ -77,6 +109,7 @@ export default function OwnerPage() {
           closeModal={closeLibraryModal}
           decisions={decisions}
           setDecisions={setDecisions}
+          allUsers={allUsers}
         />
       )}
     </div>

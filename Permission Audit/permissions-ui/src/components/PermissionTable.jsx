@@ -1,123 +1,206 @@
-import { useState } from "react";
+import React from "react";
+import { FaCheck, FaTrash } from "react-icons/fa";
 
 export default function PermissionTable({
-  data,
-  site,
-  library,
+  data = [],
   selectedRows,
-  toggleRow,
-  toggleSelectAll,
+  setSelectedRows,
   decisions,
-  saveDecision,
+  setDecisions,
+  groupKey, // for addedUsers
+  addedUsers = [],
+  setAddedUsers,
+  selectedUsers,
+  setSelectedUsers,
 }) {
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  // Keys
+  const getRowKey = (row) => `${row.email}-${row._idx}`;
+  const getDecisionKey = (row) => `${row.principal}-${row._idx}`;
 
-  const handleSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
-    setSortConfig({ key, direction });
+  // Toggle a single row selection
+  const toggleSelectRow = (row) => {
+    const key = getRowKey(row);
+    setSelectedRows((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const sortedData = [...data].sort((a, b) => {
-    if (!sortConfig.key) return 0;
-    let aVal = a[sortConfig.key];
-    let bVal = b[sortConfig.key];
-    if (typeof aVal === "string") {
-      aVal = aVal.toLowerCase();
-      bVal = bVal.toLowerCase();
-    }
-    if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
-    if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
-    return 0;
-  });
+  // Toggle all rows
+  const toggleSelectAll = () => {
+    const allSelected = data.every((r) => selectedRows[getRowKey(r)]);
+    const updated = { ...selectedRows };
+    data.forEach((r) => {
+      updated[getRowKey(r)] = !allSelected;
+    });
+    setSelectedRows(updated);
+  };
 
-  const thStyle = (align = "left") => ({
-    border: "1px solid #ccc",
-    padding: 10,
-    textAlign: align,
-    fontWeight: 600,
-    cursor: "pointer",
-  });
+  // Set decision for a row
+  const setDecision = (row, value) => {
+    const key = getDecisionKey(row);
+    setDecisions((prev) => ({ ...prev, [key]: value }));
+  };
 
-  const tdStyle = (align = "left") => ({
-    border: "1px solid #ddd",
-    padding: 8,
-    textAlign: align,
-  });
+  const selectedCount = data.filter((r) => selectedRows[getRowKey(r)]).length;
 
-  const sortIcon = (key) => {
-    if (sortConfig.key !== key) return "↕";
-    return sortConfig.direction === "asc" ? "▲" : "▼";
+  // Remove added user
+  const removeAddedUser = (email) => {
+    setSelectedUsers((prev) => ({
+      ...prev,
+      [groupKey]: (prev[groupKey] || []).filter((u) => u.email !== email),
+    }));
   };
 
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #ccc" }}>
-      <thead>
-        <tr style={{ background: "#e9ecef" }}>
-          <th style={thStyle("center")}>
-            <input type="checkbox" onChange={toggleSelectAll} />
-          </th>
-          <th style={thStyle("left")} onClick={() => handleSort("principal")}>
-            Principal {sortIcon("principal")}
-          </th>
-          <th style={thStyle("left")} onClick={() => handleSort("permission")}>
-            Permission {sortIcon("permission")}
-          </th>
-          <th style={thStyle("left")} onClick={() => handleSort("group")}>
-            Given Through {sortIcon("group")}
-          </th>
-          <th style={thStyle("center")} onClick={() => handleSort("isDirect")}>
-            Direct {sortIcon("isDirect")}
-          </th>
-          <th style={thStyle("center")}>Decision</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sortedData.map((row, idx) => {
-          const key = site + library + row.principal + idx;
-          const isSelected = selectedRows[key];
+    <div style={{ marginTop: 10 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={{ border: "1px solid #ccc", padding: 6 }}>
+              <input
+                type="checkbox"
+                onChange={toggleSelectAll}
+                checked={data.length > 0 && data.every((r) => selectedRows[getRowKey(r)])}
+              />
+            </th>
+            <th style={{ border: "1px solid #ccc", padding: 6 }}>Principal</th>
+            <th style={{ border: "1px solid #ccc", padding: 6 }}>
+              {selectedCount > 0 ? (
+                <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
+                  <button
+                    onClick={() =>
+                      data.forEach((r) =>
+                        selectedRows[getRowKey(r)] && setDecision(r, "Approve")
+                      )
+                    }
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 4,
+                      border: "1px solid #28a745",
+                      background: "#28a745",
+                      color: "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaCheck />
+                  </button>
+                  <button
+                    onClick={() =>
+                      data.forEach((r) =>
+                        selectedRows[getRowKey(r)] && setDecision(r, "Remove")
+                      )
+                    }
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 4,
+                      border: "1px solid #dc3545",
+                      background: "#dc3545",
+                      color: "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              ) : (
+                "Decision"
+              )}
+            </th>
+          </tr>
+        </thead>
 
-          return (
-            <tr
-              key={idx}
-              onClick={() => toggleRow(key)}
-              style={{
-                background: isSelected ? "#d0ebff" : idx % 2 === 0 ? "#ffffff" : "#f8f9fa",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#cfe2ff")}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = isSelected ? "#d0ebff" : idx % 2 === 0 ? "#ffffff" : "#f8f9fa")
-              }
-            >
-              <td style={tdStyle("center")}>
-                <input
-                  type="checkbox"
-                  checked={!!isSelected}
-                  readOnly
-                />
-              </td>
-              <td style={tdStyle("left")}>{row.principal}</td>
-              <td style={tdStyle("left")}>{row.permission}</td>
-              <td style={tdStyle("left")}>{row.group || "-"}</td>
-              <td style={tdStyle("center")}>{row.isDirect ? "⚠" : ""}</td>
-              <td style={tdStyle("center")}>
-                <select
-                  value={decisions[key] || ""}
-                  onChange={(e) => saveDecision({ ...decisions, [key]: e.target.value })}
-                  onClick={(e) => e.stopPropagation()}
+        <tbody>
+          {data.map((row) => {
+            const key = getRowKey(row);
+            const decisionKey = getDecisionKey(row);
+            return (
+              <tr
+                key={key}
+                style={{
+                  background: selectedRows[key] ? "#d0ebff" : "white",
+                  cursor: "pointer",
+                }}
+                onClick={() => toggleSelectRow(row)}
+              >
+                <td style={{ textAlign: "center" }}>
+                  <input type="checkbox" checked={!!selectedRows[key]} readOnly />
+                </td>
+                <td style={{ padding: 6 }}>{row.principal}</td>
+                <td style={{ padding: 6 }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDecision(row, "Approve");
+                    }}
+                    style={{
+                      marginRight: 6,
+                      padding: "6px 10px",
+                      borderRadius: 4,
+                      border: "1px solid #28a745",
+                      background: decisions[decisionKey] === "Approve" ? "#28a745" : "white",
+                      color: decisions[decisionKey] === "Approve" ? "white" : "#28a745",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaCheck />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDecision(row, "Remove");
+                    }}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 4,
+                      border: "1px solid #dc3545",
+                      background: decisions[decisionKey] === "Remove" ? "#dc3545" : "white",
+                      color: decisions[decisionKey] === "Remove" ? "white" : "#dc3545",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaTrash />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* Added Users */}
+      {addedUsers.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <strong>Added Users:</strong>
+          <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {addedUsers.map((user) => (
+              <span
+                key={user.email}
+                style={{
+                  padding: "4px 8px",
+                  background: "#e7f3ff",
+                  border: "1px solid #b6daff",
+                  borderRadius: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                {user.name}
+                <button
+                  onClick={() => removeAddedUser(user.email)}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    color: "#dc3545",
+                  }}
                 >
-                  <option value="">Select</option>
-                  <option value="Keep">Keep</option>
-                  <option value="Remove">Remove</option>
-                  <option value="MoveToGroup">Move to Group</option>
-                  <option value="Reduce">Reduce Permission</option>
-                </select>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                  ✖
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

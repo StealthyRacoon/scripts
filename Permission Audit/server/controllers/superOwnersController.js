@@ -1,5 +1,5 @@
 const db = require("../db");
-
+const crypto = require("crypto");
 
 exports.getSuperOwnersPermissions = async (req, res, next) => {
     const owner = req.query.owner;
@@ -13,7 +13,7 @@ exports.getSuperOwnersPermissions = async (req, res, next) => {
         FROM SharePointPermissions sp
         JOIN SuperOwners so
             ON sp.URL = so.URL
-        WHERE so.Name = ?
+        WHERE so.Secret = ?
         `;
 
         const rows = await db.query(sql, [owner]);
@@ -47,41 +47,28 @@ exports.getSites = async (req, res, next) => {
     }
 }
 
-
-function getOwners() {
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT Id, Name, Email FROM SuperOwners`, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-        });
-    });
-}
-
-
-const crypto = require("crypto");
-
 exports.changeSecrets = async (req, res, next) => {
     try {
 
-        const owners = await getOwners();
+        // Get unique users
+        const users = await db.query(`
+            SELECT Email, Name
+            FROM SuperOwners
+            GROUP BY Email
+        `);
 
-        for (const owner of owners) {
+        for (const user of users) {
 
             const secret = crypto
-                .createHash('sha256')
-                .update(owner.Name + owner.Email + crypto.randomBytes(16))
-                .digest('hex');
+                .createHash("sha256")
+                .update(user.Name + user.Email + crypto.randomBytes(16))
+                .digest("hex");
 
-            await new Promise((resolve, reject) => {
-                db.run(
-                    `UPDATE SuperOwners SET Secret = ? WHERE Id = ?`,
-                    [secret, owner.Id],
-                    (err) => {
-                        if (err) reject(err);
-                        else resolve();
-                    }
-                );
-            });
+            // Update ALL rows with this email
+            await db.run(
+                `UPDATE SuperOwners SET Secret = ? WHERE Email = ?`,
+                [secret, user.Email]
+            );
         }
 
         res.json({ success: true });
@@ -89,4 +76,4 @@ exports.changeSecrets = async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-}
+};
