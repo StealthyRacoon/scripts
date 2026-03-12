@@ -80,13 +80,18 @@ export default function OwnerPage() {
     setSummary(grouped);
   };
 
-  const openLibrary = (site, library) => {
-    setSelectedLibrary({
-      site,
-      library,
-      data: summary[site][library].permissions,
-    });
-  };
+const openLibrary = (site, library) => {
+  setSelectedLibrary({
+    site,
+    library,
+    data: summary[site][library].permissions.map((row, idx) => ({
+      ...row,
+      _idx: idx,        // assign _idx here
+      site,             // keep full site info
+      library           // keep full library name
+    })),
+  });
+};
 
   const closeLibraryModal = () => setSelectedLibrary(null);
 
@@ -110,6 +115,7 @@ export default function OwnerPage() {
           decisions={decisions}
           setDecisions={setDecisions}
           allUsers={allUsers}
+          selectedLibrary={selectedLibrary}
         />
       )}
     </div>

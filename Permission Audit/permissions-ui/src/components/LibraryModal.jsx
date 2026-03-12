@@ -11,6 +11,7 @@ export default function LibraryModal({
   decisions,
   setDecisions,
   allUsers,
+  selectedLibrary
 }) {
   const [expandedPermissions, setExpandedPermissions] = useState({});
   const [expandedGroups, setExpandedGroups] = useState({});
@@ -49,12 +50,43 @@ export default function LibraryModal({
       [key]: [...(prev[key] || []), ...users],
     }));
   };
-  const handleConfirmChanges = () => {
-    console.log("Confirmed changes:", decisions);
-    console.log("Added Users:", addedUsers);
-    setShowConfirmModal(false);
-    closeModal();
-  }
+
+const handleConfirmChanges = () => {
+  const normalizedLog = [];
+
+  // Process individual decisions
+  Object.entries(decisions).forEach(([key, decision]) => {
+    const [principal, idx] = key.split("-");
+    const row = libraryData.find(
+      (r) => r.principal === principal && r._idx?.toString() === idx
+    );
+    if (row) {
+      normalizedLog.push({
+        site: row.site,
+        library: row.library,
+        user: row.email,
+        decision,
+      });
+    }
+  });
+
+  // Process added users
+  Object.entries(addedUsers).forEach(([groupKey, users]) => {
+    users.forEach((user) => {
+      normalizedLog.push({
+        site: selectedLibrary.site,
+        library: selectedLibrary.library,
+        user: user.email,
+        decision: "Add",
+      });
+    });
+  });
+
+  console.log("Normalized Log:", normalizedLog);
+  setShowConfirmModal(false);
+  closeModal();
+};
+
   const groupKey = `${activeGroup?.perm}-${activeGroup?.group}`;
 
   const setGroupSelectedUsers = (users) => {
