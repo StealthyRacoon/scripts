@@ -1,51 +1,40 @@
 import { useState, useMemo } from "react";
 import { FaCheck, FaUser } from "react-icons/fa";
 
-export default function AddUserModal({ site, perm, group, addedUsers, setAddedUsers, close, allUsers }) {
+export default function AddUserModal({
+  perm,
+  group,
+  close,
+  allUsers,
+  selectedUsers = [],
+  setSelectedUsers,
+  site
+}) {
+
   const [search, setSearch] = useState("");
 
-  // Derive selected users for this site/perm/group from the flat addedUsers array
-  const selectedUsers = useMemo(() => {
-    return addedUsers
-      .filter(u => u.site === site && u.perm === perm && u.group === group)
-      .map(u => ({ email: u.email, name: u.name }));
-  }, [addedUsers, site, perm, group]);
-
   const filteredUsers = useMemo(() => {
-    const s = search.toLowerCase();
     return allUsers.filter(
       (u) =>
-        u.name.toLowerCase().includes(s) ||
-        u.email.toLowerCase().includes(s)
+        u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, allUsers]);
 
+
+
   const toggleUser = (user) => {
-    setAddedUsers((prev) => {
-      const exists = prev.some(
-        (u) =>
-          u.site === site &&
-          u.perm === perm &&
-          u.group === group &&
-          u.email === user.email
-      );
+    const exists = selectedUsers.some((u) => u.email === user.email);
 
-      if (exists) {
-        // REMOVE specific tuple
-        return prev.filter(
-          (u) =>
-            !(
-              u.site === site &&
-              u.perm === perm &&
-              u.group === group &&
-              u.email === user.email
-            )
-        );
-      }
+    let updatedUsers;
 
-      // ADD tuple
-      return [
-        ...prev,
+    if (exists) {
+      // REMOVE user
+      updatedUsers = selectedUsers.filter((u) => (u.email !== user.email && u.perm !== perm && u.group !== group));
+    } else {
+      // ADD user
+      updatedUsers = [
+        ...selectedUsers,
         {
           site,
           perm,
@@ -54,8 +43,13 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
           name: user.name,
         },
       ];
-    });
+    }
+
+    setSelectedUsers(updatedUsers);
   };
+
+
+  console.log(selectedUsers)
 
   return (
     <div
@@ -73,16 +67,17 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
         flexDirection: "column",
       }}
     >
+
       {/* Header */}
       <div
         style={{
           padding: 12,
           borderBottom: "1px solid #ccc",
           fontWeight: 600,
-          background: "#f5f5f5",
+          background: "#f5f5f5"
         }}
       >
-        Add Users to {group} ({perm}) — {site}
+        Add Users to {group} ({perm})
       </div>
 
       {/* Body */}
@@ -92,9 +87,10 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
+          overflow: "hidden"
         }}
       >
+
         {/* Search */}
         <input
           placeholder="Search users..."
@@ -105,7 +101,7 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
             padding: 8,
             border: "1px solid #ccc",
             borderRadius: 4,
-            marginBottom: 10,
+            marginBottom: 10
           }}
         />
 
@@ -118,10 +114,11 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
               overflowY: "auto",
               border: "1px solid #eee",
               padding: 6,
-              borderRadius: 4,
+              borderRadius: 4
             }}
           >
             <strong>Selected:</strong>
+
             <div style={{ marginTop: 6 }}>
               {selectedUsers.map((user) => (
                 <div key={user.email} style={{ padding: "2px 4px" }}>
@@ -139,11 +136,14 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
             overflowY: "auto",
             border: "1px solid #ddd",
             borderRadius: 4,
-            minHeight: 0,
+            minHeight: 0
           }}
         >
           {filteredUsers.map((user) => {
-            const selected = selectedUsers.some((u) => u.email === user.email);
+
+            const selected = selectedUsers.some(
+              (u) => u.email === user.email
+            );
 
             return (
               <div
@@ -156,7 +156,7 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  background: selected ? "#d0ebff" : "white",
+                  background: selected ? "#d0ebff" : "white"
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -169,6 +169,7 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
             );
           })}
         </div>
+
       </div>
 
       {/* Footer */}
@@ -178,9 +179,10 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
           borderTop: "1px solid #ccc",
           display: "flex",
           justifyContent: "flex-end",
-          gap: 10,
+          gap: 10
         }}
       >
+
         <button
           onClick={close}
           style={{
@@ -188,7 +190,7 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
             borderRadius: 4,
             border: "1px solid #ccc",
             background: "#f5f5f5",
-            cursor: "pointer",
+            cursor: "pointer"
           }}
         >
           Cancel
@@ -203,13 +205,14 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
             border: "none",
             background: selectedUsers.length ? "#0d6efd" : "#bcd4ff",
             color: "white",
-            cursor: selectedUsers.length ? "pointer" : "not-allowed",
+            cursor: selectedUsers.length ? "pointer" : "not-allowed"
           }}
         >
           Add {selectedUsers.length || ""}
         </button>
+
       </div>
+
     </div>
   );
 }
-``

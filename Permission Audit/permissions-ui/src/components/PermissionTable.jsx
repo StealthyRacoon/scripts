@@ -7,11 +7,11 @@ export default function PermissionTable({
   setSelectedRows,
   decisions,
   setDecisions,
-  groupKey, // for addedUsers
   addedUsers = [],
   setAddedUsers,
-  selectedUsers,
-  setSelectedUsers,
+  site,
+  perm,
+  group
 }) {
   // Keys
   const getRowKey = (row) => `${row.email}-${row._idx}`;
@@ -41,13 +41,18 @@ export default function PermissionTable({
 
   const selectedCount = data.filter((r) => selectedRows[getRowKey(r)]).length;
 
-  // Remove added user
-  const removeAddedUser = (email) => {
-    setSelectedUsers((prev) => ({
-      ...prev,
-      [groupKey]: (prev[groupKey] || []).filter((u) => u.email !== email),
-    }));
-  };
+const removeAddedUser = (email) => {
+  setAddedUsers(prev =>
+    prev.filter(item =>
+      !(item.perm === perm && item.group === group && item.email === email)
+    )
+  );
+};
+
+  const filteredAddedUsers = addedUsers.filter(
+    (u) => u.site === site && u.perm === perm && u.group === group
+  );
+
 
   return (
     <div style={{ marginTop: 10 }}>
@@ -166,11 +171,11 @@ export default function PermissionTable({
       </table>
 
       {/* Added Users */}
-      {addedUsers.length > 0 && (
+      {filteredAddedUsers.length > 0 && (
         <div style={{ marginTop: 10 }}>
           <strong>Added Users:</strong>
           <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {addedUsers.map((user) => (
+            {filteredAddedUsers.map((user) => (
               <span
                 key={user.email}
                 style={{

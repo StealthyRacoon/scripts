@@ -86,9 +86,7 @@ export default function OwnerSearch({ owner, setOwner, summary, onOpenLibrary })
                         >
                             <div>
                                 <div style={{ fontSize: 14, color: "#555" }}>{site}</div>
-                                <div style={{ fontSize: 12, color: "#888" }}>
-                                    {Object.keys(summary[site]).length} libraries
-                                </div>
+                                
                             </div>
 
                             <div>
