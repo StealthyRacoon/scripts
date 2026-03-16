@@ -1,4 +1,3 @@
-import React from "react";
 import { FaCheck, FaTrash } from "react-icons/fa";
 
 export default function PermissionTable({
