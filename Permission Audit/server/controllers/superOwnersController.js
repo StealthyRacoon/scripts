@@ -58,6 +58,8 @@ exports.changeSecrets = async (req, res, next) => {
         `);
 
         for (const user of users) {
+            //Runs multiple times for duplicate emails, a secret for duplicate emails is generated multiple times. To be fixed
+            
 
             const secret = crypto
                 .createHash("sha256")
