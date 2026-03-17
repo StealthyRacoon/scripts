@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
     paths:
       - "Permission Audit/**"
-      - ".github/workflows/main_myapp.yml"
+      - ".github/workflows/main_permission-audit.yml"
   workflow_dispatch:
 
 jobs:
