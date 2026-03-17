@@ -1,0 +1,76 @@
+name: Build and Deploy - Permission Audit
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "Permission Audit/**"
+      - ".github/workflows/main_myapp.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_VERSION: "18.x" # Adjust if you need 20.x
+      UI_DIR: "Permission Audit/permission-ui"
+      SERVER_DIR: "Permission Audit/server"
+      DIST_DIR: "dist"
+
+    steps:
+      - name: 🧾 Checkout
+        uses: actions/checkout@v4
+
+      # ---------- Build React app ----------
+      - name: 🔧 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: |
+            ${{ env.UI_DIR }}/package-lock.json
+            ${{ env.SERVER_DIR }}/package-lock.json
+
+      - name: 📦 Install UI deps
+        working-directory: ${{ env.UI_DIR }}
+        run: npm ci
+
+      - name: 🏗️ Build UI
+        working-directory: ${{ env.UI_DIR }}
+        run: npm run build
+
+      # ---------- Copy UI build into server ----------
+      - name: 📁 Prepare server/dist
+        run: |
+          rm -rf "${{ env.SERVER_DIR }}/${{ env.DIST_DIR }}"
+          mkdir -p "${{ env.SERVER_DIR }}/${{ env.DIST_DIR }}"
+          cp -r "${{ env.UI_DIR }}/${{ env.DIST_DIR }}/." "${{ env.SERVER_DIR }}/${{ env.DIST_DIR }}/"
+
+      # ---------- Install server deps ----------
+      - name: 📦 Install Server deps
+        working-directory: ${{ env.SERVER_DIR }}
+        run: npm ci
+
+      # (Optional) run server tests
+      # - name: ✅ Test Server
+      #   working-directory: ${{ env.SERVER_DIR }}
+      #   run: npm test --if-present
+
+      # ---------- Package server for deployment ----------
+      - name: 📦 Archive server for deploy
+        run: |
+          cd "${{ env.SERVER_DIR }}"
+          zip -r ../server_package.zip . -x "**/node_modules/**"
+          cd -
+
+      # ---------- Deploy to Azure App Service ----------
+      # Prereqs:
+      #  1) In Azure Portal -> Your App Service -> Get Publish Profile and save as repo secret: AZUREAPPSERVICE_PUBLISHPROFILE
+      #  2) Set repo variable/secret AZURE_WEBAPP_NAME to your app name
+      - name: 🚀 Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME || secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+          package: "Permission Audit/server_package.zip"
