@@ -8,7 +8,7 @@ declare global {
 
 const dbPath =
   process.env.SQLITE_PATH ??
-  path.resolve(process.cwd(), '.Permissions.db');
+  path.resolve(__dirname, 'Permissions.db');
 console.log('SQLite DB path:', dbPath);
 
 const db = global.__db__ ?? new Database(dbPath);
