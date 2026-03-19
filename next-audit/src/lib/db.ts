@@ -1,34 +1,36 @@
-// lib/db.ts
-import path from 'node:path';
-import Database from 'better-sqlite3';
+import sqlite3 from 'sqlite3';
+import path from 'path';
+import { open } from 'sqlite';
 
-declare global {
-  var __db__: Database.Database | undefined;
-}
+// Enable verbose mode (optional)
+sqlite3.verbose();
 
-const dbPath =
-  process.env.SQLITE_PATH ??
-  path.resolve(__dirname, 'Permissions.db');
-console.log('SQLite DB path:', dbPath);
+// Create a reusable DB connection
+const dbPromise = open({
+  filename: path.join(process.cwd(), 'lib', 'Permissions.db'),
+  driver: sqlite3.Database,
+});
 
-const db = global.__db__ ?? new Database(dbPath);
-db.pragma('journal_mode = WAL');
+// --- Queries ---
 
-if (process.env.NODE_ENV !== 'production') global.__db__ = db;
-
-// --- Helper functions ---
-export const getSharePointPermissions = () => {
-  return db.prepare('SELECT * FROM SharePointPermissions').all();
+export const getSharePointPermissions = async () => {
+  const db = await dbPromise;
+  return db.all('SELECT * FROM SharePointPermissions');
 };
 
-export const getSharePointSites = () => {
-  return db.prepare("SELECT * FROM SharePointPermissions WHERE ObjectType = 'Site'").all();
+export const getSharePointSites = async () => {
+  const db = await dbPromise;
+  return db.all(
+    "SELECT * FROM SharePointPermissions WHERE ObjectType = 'Site'"
+  );
 };
 
-export const getPermissionsBySite = (siteUrl: string) => {
-  return db
-    .prepare("SELECT * FROM SharePointPermissions WHERE URL = ? AND ObjectType != 'Site'")
-    .all(siteUrl);
+export const getPermissionsBySite = async (siteUrl: string) => {
+  const db = await dbPromise;
+  return db.all(
+    "SELECT * FROM SharePointPermissions WHERE URL = ? AND ObjectType != 'Site'",
+    [siteUrl]
+  );
 };
 
-export default db;
+export default dbPromise;

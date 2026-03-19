@@ -1,4 +1,5 @@
-import { FaCheck, FaTrash } from "react-icons/fa";
+import { Table, Button, Space, Checkbox, Tag, Tooltip } from "antd";
+import { CheckOutlined, DeleteOutlined } from "@ant-design/icons";
 
 export default function PermissionTable({
   data = [],
@@ -12,195 +13,154 @@ export default function PermissionTable({
   perm,
   group
 }) {
-  // Keys
   const getRowKey = (row) => `${row.email}-${row._idx}`;
   const getDecisionKey = (row) => `${row.principal}-${row._idx}`;
 
-  // Toggle a single row selection
   const toggleSelectRow = (row) => {
     const key = getRowKey(row);
     setSelectedRows((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Toggle all rows
-  const toggleSelectAll = () => {
-    const allSelected = data.every((r) => selectedRows[getRowKey(r)]);
+  const toggleSelectAll = (checked) => {
     const updated = { ...selectedRows };
     data.forEach((r) => {
-      updated[getRowKey(r)] = !allSelected;
+      updated[getRowKey(r)] = checked;
     });
     setSelectedRows(updated);
   };
 
-  // Set decision for a row
   const setDecision = (row, value) => {
     const key = getDecisionKey(row);
     setDecisions((prev) => ({ ...prev, [key]: value }));
   };
 
-  const selectedCount = data.filter((r) => selectedRows[getRowKey(r)]).length;
+  const selectedCount = data.filter(
+    (r) => selectedRows[getRowKey(r)]
+  ).length;
 
-const removeAddedUser = (email) => {
-  setAddedUsers(prev =>
-    prev.filter(item =>
-      !(item.perm === perm && item.group === group && item.email === email)
-    )
-  );
-};
+  const removeAddedUser = (email) => {
+    setAddedUsers((prev) =>
+      prev.filter(
+        (item) =>
+          !(item.perm === perm && item.group === group && item.email === email)
+      )
+    );
+  };
 
   const filteredAddedUsers = addedUsers.filter(
     (u) => u.site === site && u.perm === perm && u.group === group
   );
 
+  const columns = [
+    {
+      title: (
+        <Checkbox
+          onChange={(e) => toggleSelectAll(e.target.checked)}
+          checked={data.length > 0 && data.every((r) => selectedRows[getRowKey(r)])}
+        />
+      ),
+      dataIndex: "select",
+      render: (_, record) => (
+        <Checkbox
+          checked={!!selectedRows[getRowKey(record)]}
+          onChange={() => toggleSelectRow(record)}
+        />
+      ),
+      width: 60,
+    },
+    {
+      title: "Principal",
+      dataIndex: "principal",
+    },
+    {
+      title: (
+        selectedCount > 0 ? (
+          <Space>
+            <Tooltip title="Approve selected">
+              <Button
+                icon={<CheckOutlined />}
+                onClick={() =>
+                  data.forEach((r) => {
+                    if (selectedRows[getRowKey(r)]) {
+                      setDecision(r, "Approve");
+                    }
+                  })
+                }
+              />
+            </Tooltip>
+
+            <Tooltip title="Remove selected">
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() =>
+                  data.forEach((r) => {
+                    if (selectedRows[getRowKey(r)]) {
+                      setDecision(r, "Remove");
+                    }
+                  })
+                }
+              />
+            </Tooltip>
+          </Space>
+        ) : (
+          "Decision"
+        )
+      ),
+      render: (_, record) => {
+        const decisionKey = getDecisionKey(record);
+
+        return (
+          <Space>
+            <Button
+              type={decisions[decisionKey] === "Approve" ? "primary" : "default"}
+              icon={<CheckOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDecision(record, "Approve");
+              }}
+            />
+            <Button
+              danger
+              type={decisions[decisionKey] === "Remove" ? "primary" : "default"}
+              icon={<DeleteOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDecision(record, "Remove");
+              }}
+            />
+          </Space>
+        );
+      },
+    },
+  ];
 
   return (
     <div style={{ marginTop: 10 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>
-              <input
-                type="checkbox"
-                onChange={toggleSelectAll}
-                checked={data.length > 0 && data.every((r) => selectedRows[getRowKey(r)])}
-              />
-            </th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Principal</th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>
-              {selectedCount > 0 ? (
-                <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
-                  <button
-                    onClick={() =>
-                      data.forEach((r) =>
-                        selectedRows[getRowKey(r)] && setDecision(r, "Approve")
-                      )
-                    }
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 4,
-                      border: "1px solid #28a745",
-                      background: "#28a745",
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <FaCheck />
-                  </button>
-                  <button
-                    onClick={() =>
-                      data.forEach((r) =>
-                        selectedRows[getRowKey(r)] && setDecision(r, "Remove")
-                      )
-                    }
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 4,
-                      border: "1px solid #dc3545",
-                      background: "#dc3545",
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <FaTrash />
-                  </button>
-                </div>
-              ) : (
-                "Decision"
-              )}
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {data.map((row) => {
-            const key = getRowKey(row);
-            const decisionKey = getDecisionKey(row);
-            return (
-              <tr
-                key={key}
-                style={{
-                  background: selectedRows[key] ? "#d0ebff" : "white",
-                  cursor: "pointer",
-                }}
-                onClick={() => toggleSelectRow(row)}
-              >
-                <td style={{ textAlign: "center" }}>
-                  <input type="checkbox" checked={!!selectedRows[key]} readOnly />
-                </td>
-                <td style={{ padding: 6 }}>{row.principal}</td>
-                <td style={{ padding: 6 }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDecision(row, "Approve");
-                    }}
-                    style={{
-                      marginRight: 6,
-                      padding: "6px 10px",
-                      borderRadius: 4,
-                      border: "1px solid #28a745",
-                      background: decisions[decisionKey] === "Approve" ? "#28a745" : "white",
-                      color: decisions[decisionKey] === "Approve" ? "white" : "#28a745",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <FaCheck />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDecision(row, "Remove");
-                    }}
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 4,
-                      border: "1px solid #dc3545",
-                      background: decisions[decisionKey] === "Remove" ? "#dc3545" : "white",
-                      color: decisions[decisionKey] === "Remove" ? "white" : "#dc3545",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <FaTrash />
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <Table
+        rowKey={(record) => getRowKey(record)}
+        columns={columns}
+        dataSource={data}
+        pagination={false}
+        size="small"
+        onRow={(record) => ({
+          onClick: () => toggleSelectRow(record),
+        })}
+      />
 
       {/* Added Users */}
       {filteredAddedUsers.length > 0 && (
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 12 }}>
           <strong>Added Users:</strong>
-          <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
             {filteredAddedUsers.map((user) => (
-              <span
+              <Tag
                 key={user.email}
-                style={{
-                  padding: "4px 8px",
-                  background: "#e7f3ff",
-                  border: "1px solid #b6daff",
-                  borderRadius: 4,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                }}
+                closable
+                onClose={() => removeAddedUser(user.email)}
               >
                 {user.name}
-                <button
-                  onClick={() => removeAddedUser(user.email)}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    color: "#dc3545",
-                  }}
-                >
-                  ✖
-                </button>
-              </span>
+              </Tag>
             ))}
           </div>
         </div>

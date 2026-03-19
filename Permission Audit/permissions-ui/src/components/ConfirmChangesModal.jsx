@@ -1,13 +1,17 @@
-import { FaCheckCircle, FaTimesCircle, FaUserPlus } from "react-icons/fa";
+import { Modal, Typography, Tag, Space, Button, Divider, Card, theme } from "antd";
+import { CheckCircleOutlined, CloseCircleOutlined, UserAddOutlined } from "@ant-design/icons";
+
+const { Text, Title } = Typography;
 
 export default function ConfirmChangesModal({
   decisions,
   addedUsers,
   close,
   confirm,
-  rowLookup, // { `${principal}-${idx}`: rowWithPermGroup }
+  rowLookup,
 }) {
-  // --- Group ADDED users by perm -> group (flat array) ---
+  const { token } = theme.useToken();
+
   const addedByPermGroup = {};
   (addedUsers || []).forEach((u) => {
     const perm = u.perm || "No Permission";
@@ -18,7 +22,6 @@ export default function ConfirmChangesModal({
   });
   const hasAdded = Object.keys(addedByPermGroup).length > 0;
 
-  // --- Group APPROVED and REMOVED by perm -> group (using rowLookup) ---
   const approvedByPermGroup = {};
   const removedByPermGroup = {};
 
@@ -44,271 +47,130 @@ export default function ConfirmChangesModal({
   });
 
   const hasApproved = Object.keys(approvedByPermGroup).length > 0;
-  const hasRemoved  = Object.keys(removedByPermGroup).length > 0;
+  const hasRemoved = Object.keys(removedByPermGroup).length > 0;
+
+  const renderGroupSection = (perm, groups, type) => {
+    const isAdded = type === "added";
+    const isApproved = type === "approved";
+    const isRemoved = type === "removed";
+
+    const headerBg = isAdded
+      ? token.colorBgContainer
+      : isApproved
+      ? token.colorSuccessBg
+      : token.colorErrorBg;
+
+    const borderColor = isAdded
+      ? token.colorBorder
+      : isApproved
+      ? token.colorSuccessBorder
+      : token.colorErrorBorder;
+
+    const tagColor = isAdded
+      ? "blue"
+      : isApproved
+      ? "green"
+      : "red";
+
+    return (
+      <Card
+        key={`${type}-${perm}`}
+        size="small"
+        style={{
+          marginBottom: 12,
+          borderColor,
+        }}
+        headStyle={{
+          background: headerBg,
+        }}
+        title={<Text strong>Permission: {perm}</Text>}
+      >
+        {Object.entries(groups).map(([group, items]) => (
+          <div key={`${type}-${perm}-${group}`} style={{ marginBottom: 10 }}>
+            <Text strong>Group: {group}</Text>
+
+            <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {items.map((item) => (
+                <Tag key={isAdded ? item.email : item} color={tagColor}>
+                  {isAdded ? item.name : item}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        ))}
+      </Card>
+    );
+  };
+
+  const addedSections = Object.entries(addedByPermGroup).map(([perm, groups]) =>
+    renderGroupSection(perm, groups, "added")
+  );
+
+  const approvedSections = Object.entries(approvedByPermGroup).map(([perm, groups]) =>
+    renderGroupSection(perm, groups, "approved")
+  );
+
+  const removedSections = Object.entries(removedByPermGroup).map(([perm, groups]) =>
+    renderGroupSection(perm, groups, "removed")
+  );
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: "20%",
-        left: "30%",
-        width: "40%",
-        maxHeight: "65vh",
-        background: "white",
-        border: "1px solid #999",
-        borderRadius: 8,
-        boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
-        display: "flex",
-        flexDirection: "column"
-      }}
+    <Modal
+      open={true}
+      onCancel={close}
+      footer={null}
+      title="Confirm Permission Changes"
+      width={700}
     >
-      {/* Header */}
-      <div
-        style={{
-          padding: 16,
-          borderBottom: "1px solid #ddd",
-          fontWeight: 600,
-          fontSize: 18,
-          background: "#f5f5f5"
-        }}
-      >
-        Confirm Permission Changes
-      </div>
-
-      {/* Body */}
-      <div
-        style={{
-          padding: 16,
-          overflowY: "auto",
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          gap: 20
-        }}
-      >
-        {/* Added Users grouped by Permission & Group */}
+      <Space direction="vertical" style={{ width: "100%" }} size="middle">
         {hasAdded && (
           <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontWeight: 600,
-                marginBottom: 6
-              }}
-            >
-              <FaUserPlus color="#0d6efd" />
-              Added Users
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {Object.entries(addedByPermGroup).map(([perm, groups]) => (
-                <div key={`added-${perm}`} style={{ border: "1px solid #e5e5e5", borderRadius: 6 }}>
-                  <div
-                    style={{
-                      padding: "8px 10px",
-                      background: "#f7fbff",
-                      borderBottom: "1px solid #e5e5e5",
-                      fontWeight: 600
-                    }}
-                  >
-                    Permission: {perm}
-                  </div>
-
-                  <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-                    {Object.entries(groups).map(([group, users]) => (
-                      <div key={`added-${perm}-${group}`}>
-                        <div style={{ fontWeight: 500, marginBottom: 6 }}>
-                          Group: {group}
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {users.map((user) => (
-                            <span
-                              key={`${user.email}-${user.site}-${user.perm}-${user.group}`}
-                              style={{
-                                padding: "4px 8px",
-                                borderRadius: 4,
-                                background: "#e7f3ff",
-                                border: "1px solid #b6daff",
-                                fontSize: 13
-                              }}
-                            >
-                              {user.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Space>
+              <UserAddOutlined style={{ color: token.colorPrimary }} />
+              <Title level={5} style={{ margin: 0 }}>
+                Added Users
+              </Title>
+            </Space>
+            <Divider style={{ margin: "8px 0" }} />
+            {addedSections}
           </div>
         )}
 
-        {/* Approved grouped by Permission & Group */}
         {hasApproved && (
           <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontWeight: 600,
-                marginBottom: 6
-              }}
-            >
-              <FaCheckCircle color="#28a745" />
-              Approved Permissions
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {Object.entries(approvedByPermGroup).map(([perm, groups]) => (
-                <div key={`approved-${perm}`} style={{ border: "1px solid #e5e5e5", borderRadius: 6 }}>
-                  <div
-                    style={{
-                      padding: "8px 10px",
-                      background: "#e8f7ee",
-                      borderBottom: "1px solid #e5e5e5",
-                      fontWeight: 600
-                    }}
-                  >
-                    Permission: {perm}
-                  </div>
-
-                  <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-                    {Object.entries(groups).map(([group, principals]) => (
-                      <div key={`approved-${perm}-${group}`}>
-                        <div style={{ fontWeight: 500, marginBottom: 6 }}>
-                          Group: {group}
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {principals.map((p) => (
-                            <span
-                              key={`${p}-${perm}-${group}`}
-                              style={{
-                                padding: "4px 8px",
-                                borderRadius: 4,
-                                background: "#e8f7ee",
-                                border: "1px solid #b7e4c7",
-                                fontSize: 13
-                              }}
-                            >
-                              {p}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Space>
+              <CheckCircleOutlined style={{ color: token.colorSuccess }} />
+              <Title level={5} style={{ margin: 0 }}>
+                Approved Permissions
+              </Title>
+            </Space>
+            <Divider style={{ margin: "8px 0" }} />
+            {approvedSections}
           </div>
         )}
 
-        {/* Removed grouped by Permission & Group */}
         {hasRemoved && (
           <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontWeight: 600,
-                marginBottom: 6
-              }}
-            >
-              <FaTimesCircle color="#dc3545" />
-              Removed Permissions
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {Object.entries(removedByPermGroup).map(([perm, groups]) => (
-                <div key={`removed-${perm}`} style={{ border: "1px solid #e5e5e5", borderRadius: 6 }}>
-                  <div
-                    style={{
-                      padding: "8px 10px",
-                      background: "#fdeaea",
-                      borderBottom: "1px solid #e5e5e5",
-                      fontWeight: 600
-                    }}
-                  >
-                    Permission: {perm}
-                  </div>
-
-                  <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-                    {Object.entries(groups).map(([group, principals]) => (
-                      <div key={`removed-${perm}-${group}`}>
-                        <div style={{ fontWeight: 500, marginBottom: 6 }}>
-                          Group: {group}
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {principals.map((p) => (
-                            <span
-                              key={`${p}-${perm}-${group}`}
-                              style={{
-                                padding: "4px 8px",
-                                borderRadius: 4,
-                                background: "#fdeaea",
-                                border: "1px solid #f5b5b5",
-                                fontSize: 13
-                              }}
-                            >
-                              {p}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Space>
+              <CloseCircleOutlined style={{ color: token.colorError }} />
+              <Title level={5} style={{ margin: 0 }}>
+                Removed Permissions
+              </Title>
+            </Space>
+            <Divider style={{ margin: "8px 0" }} />
+            {removedSections}
           </div>
         )}
-      </div>
 
-      {/* Footer */}
-      <div
-        style={{
-          padding: 14,
-          borderTop: "1px solid #ddd",
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: 10,
-          background: "#f5f5f5"
-        }}
-      >
-        <button
-          onClick={close}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 4,
-            border: "1px solid #ccc",
-            background: "#f1f1f1",
-            cursor: "pointer"
-          }}
-        >
-          Cancel
-        </button>
+        <Divider />
 
-        <button
-          onClick={confirm}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 4,
-            border: "none",
-            background: "#0d6efd",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: 500
-          }}
-        >
-          Confirm Changes
-        </button>
-      </div>
-    </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <Button onClick={close}>Cancel</Button>
+          <Button type="primary" onClick={confirm}>
+            Confirm Changes
+          </Button>
+        </div>
+      </Space>
+    </Modal>
   );
 }

@@ -1,14 +1,25 @@
 import { useState, useMemo } from "react";
-import { FaCheck, FaUser } from "react-icons/fa";
+import { Modal, Input, List, Typography, Button, Space, Tag, theme } from "antd";
+import { CheckOutlined, UserOutlined } from "@ant-design/icons";
 
-export default function AddUserModal({ site, perm, group, addedUsers, setAddedUsers, close, allUsers }) {
+const { Text } = Typography;
+
+export default function AddUserModal({
+  site,
+  perm,
+  group,
+  addedUsers,
+  setAddedUsers,
+  close,
+  allUsers
+}) {
   const [search, setSearch] = useState("");
+  const { token } = theme.useToken();
 
-  // Derive selected users for this site/perm/group from the flat addedUsers array
   const selectedUsers = useMemo(() => {
     return addedUsers
-      .filter(u => u.site === site && u.perm === perm && u.group === group)
-      .map(u => ({ email: u.email, name: u.name }));
+      .filter((u) => u.site === site && u.perm === perm && u.group === group)
+      .map((u) => ({ email: u.email, name: u.name }));
   }, [addedUsers, site, perm, group]);
 
   const filteredUsers = useMemo(() => {
@@ -31,7 +42,6 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
       );
 
       if (exists) {
-        // REMOVE specific tuple
         return prev.filter(
           (u) =>
             !(
@@ -43,7 +53,6 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
         );
       }
 
-      // ADD tuple
       return [
         ...prev,
         {
@@ -58,158 +67,103 @@ export default function AddUserModal({ site, perm, group, addedUsers, setAddedUs
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: "20%",
-        left: "35%",
-        width: "30%",
-        maxHeight: "65vh",
-        background: "white",
-        border: "1px solid #999",
-        borderRadius: 6,
-        boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-        display: "flex",
-        flexDirection: "column",
-      }}
+    <Modal
+      open={true}
+      onCancel={close}
+      footer={null}
+      title={`Add Users to ${group} (${perm}) — ${site}`}
+      width={500}
     >
-      {/* Header */}
-      <div
-        style={{
-          padding: 12,
-          borderBottom: "1px solid #ccc",
-          fontWeight: 600,
-          background: "#f5f5f5",
-        }}
-      >
-        Add Users to {group} ({perm}) — {site}
-      </div>
-
-      {/* Body */}
-      <div
-        style={{
-          padding: 12,
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <Space direction="vertical" style={{ width: "100%" }} size="middle">
         {/* Search */}
-        <input
+        <Input
           placeholder="Search users..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 8,
-            border: "1px solid #ccc",
-            borderRadius: 4,
-            marginBottom: 10,
-          }}
+          allowClear
         />
 
         {/* Selected users */}
         {selectedUsers.length > 0 && (
           <div
             style={{
-              marginBottom: 10,
-              maxHeight: 80,
+              maxHeight: 120,
               overflowY: "auto",
-              border: "1px solid #eee",
-              padding: 6,
-              borderRadius: 4,
+              border: `1px solid ${token.colorBorder}`,
+              padding: 10,
+              borderRadius: 6,
+              background: token.colorBgContainer,
             }}
           >
-            <strong>Selected:</strong>
-            <div style={{ marginTop: 6 }}>
+            <Text strong>Selected:</Text>
+            <div
+              style={{
+                marginTop: 8,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+              }}
+            >
               {selectedUsers.map((user) => (
-                <div key={user.email} style={{ padding: "2px 4px" }}>
+                <Tag key={user.email} icon={<CheckOutlined />} color="blue">
                   {user.name}
-                </div>
+                </Tag>
               ))}
             </div>
           </div>
         )}
 
         {/* User list */}
-        <div
+        <List
+          bordered
+          dataSource={filteredUsers}
           style={{
-            flex: 1,
+            maxHeight: 320,
             overflowY: "auto",
-            border: "1px solid #ddd",
-            borderRadius: 4,
-            minHeight: 0,
+            background: token.colorBgContainer,
+            borderColor: token.colorBorder,
           }}
-        >
-          {filteredUsers.map((user) => {
-            const selected = selectedUsers.some((u) => u.email === user.email);
+          renderItem={(user) => {
+            const selected = selectedUsers.some(
+              (u) => u.email === user.email
+            );
 
             return (
-              <div
-                key={user.email}
+              <List.Item
                 onClick={() => toggleUser(user)}
                 style={{
-                  padding: 8,
                   cursor: "pointer",
-                  borderBottom: "1px solid #eee",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  background: selected ? "#d0ebff" : "white",
+                  background: selected
+                    ? token.colorPrimaryBg
+                    : token.colorBgContainer,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <FaUser size={12} />
-                  {user.name}
-                </div>
+                <Space>
+                  <UserOutlined />
+                  <Text>{user.name}</Text>
+                  <Text type="secondary">{user.email}</Text>
+                </Space>
 
-                {selected && <FaCheck color="#28a745" />}
-              </div>
+                {selected && (
+                  <CheckOutlined style={{ color: token.colorPrimary }} />
+                )}
+              </List.Item>
             );
-          })}
+          }}
+        />
+
+        {/* Footer actions */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <Button onClick={close}>Cancel</Button>
+          <Button
+            type="primary"
+            onClick={close}
+            disabled={!selectedUsers.length}
+          >
+            Add {selectedUsers.length || ""}
+          </Button>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div
-        style={{
-          padding: 10,
-          borderTop: "1px solid #ccc",
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: 10,
-        }}
-      >
-        <button
-          onClick={close}
-          style={{
-            padding: "6px 12px",
-            borderRadius: 4,
-            border: "1px solid #ccc",
-            background: "#f5f5f5",
-            cursor: "pointer",
-          }}
-        >
-          Cancel
-        </button>
-
-        <button
-          disabled={!selectedUsers.length}
-          onClick={close}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 4,
-            border: "none",
-            background: selectedUsers.length ? "#0d6efd" : "#bcd4ff",
-            color: "white",
-            cursor: selectedUsers.length ? "pointer" : "not-allowed",
-          }}
-        >
-          Add {selectedUsers.length || ""}
-        </button>
-      </div>
-    </div>
+      </Space>
+    </Modal>
   );
 }
-``
