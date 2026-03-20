@@ -97,7 +97,7 @@ const openLibrary = (site, library) => {
 
   return (
     <div style={{ padding: 40, fontFamily: "Segoe UI, sans-serif" }}>
-      <h1>SharePoint Permission Review for {superOwner}</h1>
+      <h1>{superOwner}</h1>
 
       <OwnerSearch
         owner={superOwner}

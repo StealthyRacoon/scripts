@@ -78,6 +78,12 @@ export default function PermissionTable({
           <Space>
             <Tooltip title="Approve selected">
               <Button
+                type={data
+                  .filter((r) => selectedRows[getRowKey(r)])
+                  .every((r) => decisions[getDecisionKey(r)] === "Approve") &&
+                  data.some((r) => selectedRows[getRowKey(r)])
+                  ? "primary"
+                  : "default"}
                 icon={<CheckOutlined />}
                 onClick={() =>
                   data.forEach((r) => {
@@ -92,6 +98,12 @@ export default function PermissionTable({
             <Tooltip title="Remove selected">
               <Button
                 danger
+                type={data
+                  .filter((r) => selectedRows[getRowKey(r)])
+                  .every((r) => decisions[getDecisionKey(r)] === "Remove") &&
+                  data.some((r) => selectedRows[getRowKey(r)])
+                  ? "primary"
+                  : "default"}
                 icon={<DeleteOutlined />}
                 onClick={() =>
                   data.forEach((r) => {
