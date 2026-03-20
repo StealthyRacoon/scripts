@@ -12,16 +12,26 @@ export default function ConfirmChangesModal({
 }) {
   const { token } = theme.useToken();
 
+  // ------------------------
+  // Added Users (already structured well)
+  // ------------------------
   const addedByPermGroup = {};
   (addedUsers || []).forEach((u) => {
     const perm = u.perm || "No Permission";
     const group = u.group || "Direct";
+
     if (!addedByPermGroup[perm]) addedByPermGroup[perm] = {};
-    if (!addedByPermGroup[perm][group]) addedByPermGroup[perm][group] = [];
-    addedByPermGroup[perm][group].push(u);
+    if (!addedByPermGroup[perm][group]) addedByPermGroup[perm][group] = {};
+
+    const key = u.email;
+    addedByPermGroup[perm][group][key] = u;
   });
+
   const hasAdded = Object.keys(addedByPermGroup).length > 0;
 
+  // ------------------------
+  // Decisions (FIXED: deduplicated + structured)
+  // ------------------------
   const approvedByPermGroup = {};
   const removedByPermGroup = {};
 
@@ -35,20 +45,30 @@ export default function ConfirmChangesModal({
 
     const ensureBuckets = (container) => {
       if (!container[perm]) container[perm] = {};
-      if (!container[perm][group]) container[perm][group] = [];
+      if (!container[perm][group]) container[perm][group] = {};
       return container[perm][group];
     };
 
+    const userKey = row.email || principal;
+
+    const userValue = {
+      name: row.name || principal,
+      email: row.email || principal,
+    };
+
     if (value === "Approve") {
-      ensureBuckets(approvedByPermGroup).push(principal);
+      ensureBuckets(approvedByPermGroup)[userKey] = userValue;
     } else if (value === "Remove") {
-      ensureBuckets(removedByPermGroup).push(principal);
+      ensureBuckets(removedByPermGroup)[userKey] = userValue;
     }
   });
 
   const hasApproved = Object.keys(approvedByPermGroup).length > 0;
   const hasRemoved = Object.keys(removedByPermGroup).length > 0;
 
+  // ------------------------
+  // Render helper
+  // ------------------------
   const renderGroupSection = (perm, groups, type) => {
     const isAdded = type === "added";
     const isApproved = type === "approved";
@@ -57,20 +77,20 @@ export default function ConfirmChangesModal({
     const headerBg = isAdded
       ? token.colorBgContainer
       : isApproved
-        ? token.colorSuccessBg
-        : token.colorErrorBg;
+      ? token.colorSuccessBg
+      : token.colorErrorBg;
 
     const borderColor = isAdded
       ? token.colorBorder
       : isApproved
-        ? token.colorSuccessBorder
-        : token.colorErrorBorder;
+      ? token.colorSuccessBorder
+      : token.colorErrorBorder;
 
     const tagColor = isAdded
       ? "blue"
       : isApproved
-        ? "green"
-        : "red";
+      ? "green"
+      : "red";
 
     return (
       <Card
@@ -92,9 +112,9 @@ export default function ConfirmChangesModal({
             <Text strong>Group: {group}</Text>
 
             <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {items.map((item) => (
-                <Tag key={isAdded ? item.email : item} color={tagColor}>
-                  {isAdded ? item.name : item}
+              {Object.values(items).map((user) => (
+                <Tag key={user.email} color={tagColor}>
+                  {user.name}
                 </Tag>
               ))}
             </div>
@@ -104,6 +124,9 @@ export default function ConfirmChangesModal({
     );
   };
 
+  // ------------------------
+  // Sections
+  // ------------------------
   const addedSections = Object.entries(addedByPermGroup).map(([perm, groups]) =>
     renderGroupSection(perm, groups, "added")
   );
@@ -116,6 +139,9 @@ export default function ConfirmChangesModal({
     renderGroupSection(perm, groups, "removed")
   );
 
+  // ------------------------
+  // UI
+  // ------------------------
   return (
     <Modal
       open={true}
@@ -123,14 +149,12 @@ export default function ConfirmChangesModal({
       footer={null}
       title="Confirm Permission Changes"
       width={700}
-
       styles={{
         body: {
-          maxHeight: 'calc(100vh - 30vh)', // header + footer + breathing room
-          overflowY: 'auto',
+          maxHeight: "calc(100vh - 30vh)",
+          overflowY: "auto",
         },
       }}
-
     >
       <Space orientation="vertical" style={{ width: "100%" }} size="middle">
         {hasAdded && (
@@ -174,7 +198,14 @@ export default function ConfirmChangesModal({
 
         <Divider />
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: "5vh" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 8,
+            marginBottom: "5vh",
+          }}
+        >
           <Button onClick={close}>Cancel</Button>
           <Button type="primary" onClick={confirm}>
             Confirm Changes
@@ -182,6 +213,5 @@ export default function ConfirmChangesModal({
         </div>
       </Space>
     </Modal>
-
   );
 }
