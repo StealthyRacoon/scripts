@@ -81,6 +81,7 @@ export default function LibraryModal({
             });
         });
 
+        console.log("Normalized Log for Backend:", normalizedLog);        
         setShowConfirmModal(false);
         closeModal();
     };
