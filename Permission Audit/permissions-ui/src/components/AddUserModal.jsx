@@ -74,7 +74,7 @@ export default function AddUserModal({
       title={`Add Users to ${group} (${perm}) — ${site}`}
       width={500}
     >
-      <Space direction="vertical" style={{ width: "100%" }} size="middle">
+      <Space orientation="vertical" style={{ width: "100%" }} size="middle">
         {/* Search */}
         <Input
           placeholder="Search users..."
@@ -114,25 +114,33 @@ export default function AddUserModal({
         )}
 
         {/* User list */}
-        <List
-          bordered
-          dataSource={filteredUsers}
+        <div
           style={{
             maxHeight: 320,
             overflowY: "auto",
             background: token.colorBgContainer,
-            borderColor: token.colorBorder,
+            border: `1px solid ${token.colorBorder}`,
+            borderRadius: token.borderRadius,
+            padding: 8,
           }}
-          renderItem={(user) => {
+        >
+          {filteredUsers.map((user) => {
             const selected = selectedUsers.some(
               (u) => u.email === user.email
             );
 
             return (
-              <List.Item
+              <div
+                key={user.email}
                 onClick={() => toggleUser(user)}
                 style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "8px 12px",
+                  marginBottom: 4,
                   cursor: "pointer",
+                  borderRadius: token.borderRadiusSM,
                   background: selected
                     ? token.colorPrimaryBg
                     : token.colorBgContainer,
@@ -140,17 +148,19 @@ export default function AddUserModal({
               >
                 <Space>
                   <UserOutlined />
-                  <Text>{user.name}</Text>
-                  <Text type="secondary">{user.email}</Text>
+                  <div>
+                    <div>{user.name}</div>
+                    <Text type="secondary">{user.email}</Text>
+                  </div>
                 </Space>
 
                 {selected && (
                   <CheckOutlined style={{ color: token.colorPrimary }} />
                 )}
-              </List.Item>
+              </div>
             );
-          }}
-        />
+          })}
+        </div>
 
         {/* Footer actions */}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>

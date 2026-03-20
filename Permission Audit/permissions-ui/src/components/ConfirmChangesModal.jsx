@@ -57,20 +57,20 @@ export default function ConfirmChangesModal({
     const headerBg = isAdded
       ? token.colorBgContainer
       : isApproved
-      ? token.colorSuccessBg
-      : token.colorErrorBg;
+        ? token.colorSuccessBg
+        : token.colorErrorBg;
 
     const borderColor = isAdded
       ? token.colorBorder
       : isApproved
-      ? token.colorSuccessBorder
-      : token.colorErrorBorder;
+        ? token.colorSuccessBorder
+        : token.colorErrorBorder;
 
     const tagColor = isAdded
       ? "blue"
       : isApproved
-      ? "green"
-      : "red";
+        ? "green"
+        : "red";
 
     return (
       <Card
@@ -80,8 +80,10 @@ export default function ConfirmChangesModal({
           marginBottom: 12,
           borderColor,
         }}
-        headStyle={{
-          background: headerBg,
+        styles={{
+          header: {
+            background: headerBg,
+          },
         }}
         title={<Text strong>Permission: {perm}</Text>}
       >
@@ -121,8 +123,16 @@ export default function ConfirmChangesModal({
       footer={null}
       title="Confirm Permission Changes"
       width={700}
+
+      styles={{
+        body: {
+          maxHeight: 'calc(100vh - 30vh)', // header + footer + breathing room
+          overflowY: 'auto',
+        },
+      }}
+
     >
-      <Space direction="vertical" style={{ width: "100%" }} size="middle">
+      <Space orientation="vertical" style={{ width: "100%" }} size="middle">
         {hasAdded && (
           <div>
             <Space>
@@ -164,7 +174,7 @@ export default function ConfirmChangesModal({
 
         <Divider />
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: "5vh" }}>
           <Button onClick={close}>Cancel</Button>
           <Button type="primary" onClick={confirm}>
             Confirm Changes
@@ -172,5 +182,6 @@ export default function ConfirmChangesModal({
         </div>
       </Space>
     </Modal>
+
   );
 }
