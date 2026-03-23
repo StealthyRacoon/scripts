@@ -61,9 +61,10 @@ export default function LibraryModal({
             if (!row) return;
 
             normalizedLog.push({
+                principal,
                 site: row.site,
                 library: row.library,
-                user: row.email,
+                UPN: row.email,
                 perm: row.permission || row.perm || "No Permission",
                 group: row.group || "Direct",
                 decision,
@@ -72,16 +73,17 @@ export default function LibraryModal({
 
         (addedUsers || []).forEach((u) => {
             normalizedLog.push({
+                principal,
                 site: u.site,
                 library: selectedLibrary.library,
-                user: u.email,
+                UPN: u.email,
                 perm: u.perm,
                 group: u.group,
                 decision: "Add",
             });
         });
 
-        console.log("Normalized Log for Backend:", normalizedLog);        
+        console.log("Normalized Log for Backend:", normalizedLog);
         setShowConfirmModal(false);
         closeModal();
     };

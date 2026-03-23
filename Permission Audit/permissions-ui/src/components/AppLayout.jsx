@@ -39,7 +39,7 @@ export default function AppLayout({ children }) {
       <Content style={{ padding: 24 }}>{children}</Content>
 
       <Footer style={{ textAlign: "center", color: token.colorTextSecondary }}>
-        Permission Review Tool
+        Sustainable Timber Tasmania
       </Footer>
     </Layout>
   );

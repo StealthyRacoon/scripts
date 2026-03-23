@@ -1,8 +1,43 @@
-import { useState, useMemo } from "react";
-import { Modal, Input, List, Typography, Button, Space, Tag, theme } from "antd";
+import { useState, useMemo, useCallback } from "react";
+import { Modal, Input, Typography, Button, Space, Tag, theme } from "antd";
 import { CheckOutlined, UserOutlined } from "@ant-design/icons";
+import debounce from "lodash/debounce";
+import React from "react";
 
 const { Text } = Typography;
+
+// ✅ Memoized row component
+const UserRow = React.memo(({ user, selected, onToggle, token }) => {
+  return (
+    <div
+      onClick={() => onToggle(user)}
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "8px 12px",
+        marginBottom: 4,
+        cursor: "pointer",
+        borderRadius: token.borderRadiusSM,
+        background: selected
+          ? token.colorPrimaryBg
+          : token.colorBgContainer,
+      }}
+    >
+      <Space>
+        <UserOutlined />
+        <div>
+          <div>{user.name}</div>
+          <Text type="secondary">{user.email}</Text>
+        </div>
+      </Space>
+
+      {selected && (
+        <CheckOutlined style={{ color: token.colorPrimary }} />
+      )}
+    </div>
+  );
+});
 
 export default function AddUserModal({
   site,
@@ -11,60 +46,80 @@ export default function AddUserModal({
   addedUsers,
   setAddedUsers,
   close,
-  allUsers
+  allUsers,
 }) {
   const [search, setSearch] = useState("");
   const { token } = theme.useToken();
 
+  // ✅ Debounced search
+  const debouncedSetSearch = useMemo(
+    () => debounce((value) => setSearch(value.toLowerCase()), 200),
+    []
+  );
+
+  // ✅ Selected users (filtered once)
   const selectedUsers = useMemo(() => {
-    return addedUsers
-      .filter((u) => u.site === site && u.perm === perm && u.group === group)
-      .map((u) => ({ email: u.email, name: u.name }));
+    return addedUsers.filter(
+      (u) => u.site === site && u.perm === perm && u.group === group
+    );
   }, [addedUsers, site, perm, group]);
 
+  // ✅ O(1) lookup set
+  const selectedSet = useMemo(() => {
+    return new Set(selectedUsers.map((u) => u.email));
+  }, [selectedUsers]);
+
+  // ✅ Filter + limit results
   const filteredUsers = useMemo(() => {
-    const s = search.toLowerCase();
-    return allUsers.filter(
-      (u) =>
-        u.name.toLowerCase().includes(s) ||
-        u.email.toLowerCase().includes(s)
-    );
+    if (!search) return allUsers.slice(0, 100);
+
+    return allUsers
+      .filter(
+        (u) =>
+          u.name.toLowerCase().includes(search) ||
+          u.email.toLowerCase().includes(search)
+      )
+      .slice(0, 100); // 🚀 limit for performance
   }, [search, allUsers]);
 
-  const toggleUser = (user) => {
-    setAddedUsers((prev) => {
-      const exists = prev.some(
-        (u) =>
-          u.site === site &&
-          u.perm === perm &&
-          u.group === group &&
-          u.email === user.email
-      );
-
-      if (exists) {
-        return prev.filter(
+  // ✅ Optimized toggle
+  const toggleUser = useCallback(
+    (user) => {
+      setAddedUsers((prev) => {
+        const exists = prev.some(
           (u) =>
-            !(
-              u.site === site &&
-              u.perm === perm &&
-              u.group === group &&
-              u.email === user.email
-            )
+            u.site === site &&
+            u.perm === perm &&
+            u.group === group &&
+            u.email === user.email
         );
-      }
 
-      return [
-        ...prev,
-        {
-          site,
-          perm,
-          group,
-          email: user.email,
-          name: user.name,
-        },
-      ];
-    });
-  };
+        if (exists) {
+          return prev.filter(
+            (u) =>
+              !(
+                u.site === site &&
+                u.perm === perm &&
+                u.group === group &&
+                u.email === user.email
+              )
+          );
+        }
+
+        return [
+          ...prev,
+          {
+            site,
+            perm,
+            group,
+            email: user.email,
+            name: user.name,
+          },
+        ];
+      });
+    },
+    [setAddedUsers, site, perm, group]
+  );
 
   return (
     <Modal
@@ -78,8 +133,7 @@ export default function AddUserModal({
         {/* Search */}
         <Input
           placeholder="Search users..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => debouncedSetSearch(e.target.value)}
           allowClear
         />
 
@@ -124,42 +178,15 @@ export default function AddUserModal({
             padding: 8,
           }}
         >
-          {filteredUsers.map((user) => {
-            const selected = selectedUsers.some(
-              (u) => u.email === user.email
-            );
-
-            return (
-              <div
-                key={user.email}
-                onClick={() => toggleUser(user)}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "8px 12px",
-                  marginBottom: 4,
-                  cursor: "pointer",
-                  borderRadius: token.borderRadiusSM,
-                  background: selected
-                    ? token.colorPrimaryBg
-                    : token.colorBgContainer,
-                }}
-              >
-                <Space>
-                  <UserOutlined />
-                  <div>
-                    <div>{user.name}</div>
-                    <Text type="secondary">{user.email}</Text>
-                  </div>
-                </Space>
-
-                {selected && (
-                  <CheckOutlined style={{ color: token.colorPrimary }} />
-                )}
-              </div>
-            );
-          })}
+          {filteredUsers.map((user) => (
+            <UserRow
+              key={user.email}
+              user={user}
+              selected={selectedSet.has(user.email)}
+              onToggle={toggleUser}
+              token={token}
+            />
+          ))}
         </div>
 
         {/* Footer actions */}

@@ -51,6 +51,7 @@ export default function OwnerPage() {
     return Object.values(emailMap);
   };
 
+
   const buildSummary = (rows) => {
     const grouped = {};
     setSuperOwner(rows[0].superOwner)
