@@ -1,6 +1,8 @@
+const express = require("express");
+const router = express.Router();
 const db = require("../db");
 
-exports.getPermissions = async (req, res, next) => {
+router.get("/permissions", async (req, res, next) => {
     try {
         const site = req.query.site;
         let query = `
@@ -21,9 +23,9 @@ exports.getPermissions = async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-};
+});
 
-exports.getAllUsers = async (req, res, next) => {
+router.get("/users", async (req, res, next) => {
     try {
         let query = `
             SELECT DISTINCT TRIM(LOWER(Email)) AS Email, TRIM(Name) AS Name
@@ -36,4 +38,6 @@ exports.getAllUsers = async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-}
+});
+
+module.exports = router;

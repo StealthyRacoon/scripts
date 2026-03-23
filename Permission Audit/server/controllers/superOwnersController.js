@@ -1,7 +1,12 @@
+
+const express = require("express");
+const router = express.Router();
 const db = require("../db");
 const crypto = require("crypto");
 
-exports.getSuperOwnersPermissions = async (req, res, next) => {
+
+
+router.get("/superownerspermissions", async (req, res, next) => {
     const owner = req.query.owner;
 
     try {
@@ -22,9 +27,9 @@ exports.getSuperOwnersPermissions = async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-};
+});
 
-exports.getSites = async (req, res, next) => {
+router.get("/sites", async (req, res, next) => {
 
     try {
 
@@ -45,9 +50,9 @@ exports.getSites = async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-}
+});
 
-exports.changeSecrets = async (req, res, next) => {
+router.get("/changesecrets", async (req, res, next) => {
     try {
 
         // Get unique users
@@ -59,7 +64,7 @@ exports.changeSecrets = async (req, res, next) => {
 
         for (const user of users) {
             //Runs multiple times for duplicate emails, a secret for duplicate emails is generated multiple times. To be fixed
-            
+
 
             const secret = crypto
                 .createHash("sha256")
@@ -78,4 +83,6 @@ exports.changeSecrets = async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-};
+});
+
+module.exports = router;

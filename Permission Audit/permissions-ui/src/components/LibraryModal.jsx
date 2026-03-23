@@ -1,10 +1,13 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Modal, Button, Typography, Collapse, Space } from "antd";
 import { PlusOutlined, RightOutlined, DownOutlined } from "@ant-design/icons";
 
 import PermissionTable from "./PermissionTable";
 import AddUserModal from "./AddUserModal";
 import ConfirmChangesModal from "./ConfirmChangesModal";
+
+import api from "../utils/api";
+import { useStatus } from "../providers/StatusProvider";
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -16,7 +19,9 @@ export default function LibraryModal({
     decisions,
     setDecisions,
     allUsers,
-    selectedLibrary
+    selectedLibrary,
+    loading,
+    setLoading
 }) {
     const [expandedGroups, setExpandedGroups] = useState({});
     const [selectedRows, setSelectedRows] = useState({});
@@ -24,6 +29,8 @@ export default function LibraryModal({
     const [activeGroup, setActiveGroup] = useState(null);
     const [addedUsers, setAddedUsers] = useState([]);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+    const { notify } = useStatus();
 
     const groupedData = useMemo(() => {
         const permGroups = {};
@@ -50,7 +57,7 @@ export default function LibraryModal({
         return map;
     }, [libraryData]);
 
-    const handleConfirmChanges = () => {
+    const handleConfirmChanges = async () => {
         const normalizedLog = [];
 
         Object.entries(decisions || {}).forEach(([key, decision]) => {
@@ -83,9 +90,18 @@ export default function LibraryModal({
             });
         });
 
-        console.log("Normalized Log for Backend:", normalizedLog);
-        setShowConfirmModal(false);
-        closeModal();
+        
+        setLoading({ showMessage: true, isLoading: true, color: "#faad14" });
+        try {
+            await api.post("/audit", normalizedLog);
+            notify.success("Changes submitted and audit log saved!");
+        } catch (error) {
+            setLoading({ showMessage: true, isLoading: false, color: "#f5222d" });
+        } finally {
+            setLoading({ showMessage: false, isLoading: false });
+            setShowConfirmModal(false);
+            closeModal();
+        }
     };
 
     return (

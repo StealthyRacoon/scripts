@@ -1,17 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 
-const permissionsRoutes = require("./routes/permissionsRoutes");
-const superOwnersRoutes = require("./routes/superOwnersRoutes");
-
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/api", permissionsRoutes);
-app.use("/api", superOwnersRoutes);
+app.use("/api", require("./controllers/permissionsController"));
+app.use("/api", require("./controllers/superOwnersController"));
+app.use("/api", require("./controllers/auditController"));
 
 
 // app.use(express.static(path.join(__dirname, "dist")));

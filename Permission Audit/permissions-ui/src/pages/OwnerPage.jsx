@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/api";
+
 
 import OwnerSearch from "../components/OwnerSearch";
 import LibraryModal from "../components/LibraryModal";
+
 
 export default function OwnerPage() {
   const { owner } = useParams();
@@ -13,18 +15,19 @@ export default function OwnerPage() {
   const [decisions, setDecisions] = useState({});
   const [superOwner, setSuperOwner] = useState();
   const [allUsers, setAllUsers] = useState([]);
-
+  const [loading, setLoading] = useState(false);
+  
   useEffect(() => {
     if (!owner) return;
 
-    axios
-      .get(`http://localhost:4000/api/superownerspermissions?owner=${encodeURIComponent(owner)}`)
+    api
+      .get(`/superownerspermissions?owner=${encodeURIComponent(owner)}`)
       .then((res) => buildSummary(res.data))
       .catch(console.error);
   }, [owner]);
 
   useEffect(() => {
-    axios.get("http://localhost:4000/api/users")
+    api.get("/users")
       .then((res) => {
         const formatted = res.data.map(u => ({ name: u.Name, email: u.Email }));
         const uniqueUsers = deduplicateUsers(formatted);
@@ -81,25 +84,26 @@ export default function OwnerPage() {
     setSummary(grouped);
   };
 
-const openLibrary = (site, library) => {
-  setSelectedLibrary({
-    site,
-    library,
-    data: summary[site][library].permissions.map((row, idx) => ({
-      ...row,
-      _idx: idx,        // assign _idx here
-      site,             // keep full site info
-      library           // keep full library name
-    })),
-  });
-};
+  const openLibrary = (site, library) => {
+    setSelectedLibrary({
+      site,
+      library,
+      data: summary[site][library].permissions.map((row, idx) => ({
+        ...row,
+        _idx: idx,        // assign _idx here
+        site,             // keep full site info
+        library           // keep full library name
+      })),
+    });
+  };
 
   const closeLibraryModal = () => setSelectedLibrary(null);
 
   return (
     <div style={{ padding: 40, fontFamily: "Segoe UI, sans-serif" }}>
-      <h1>{superOwner}</h1>
 
+
+      <h1>{superOwner}</h1>
       <OwnerSearch
         owner={superOwner}
         setOwner={() => { }}
@@ -117,6 +121,8 @@ const openLibrary = (site, library) => {
           setDecisions={setDecisions}
           allUsers={allUsers}
           selectedLibrary={selectedLibrary}
+          loading={loading}
+          setLoading={setLoading}
         />
       )}
     </div>
