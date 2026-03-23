@@ -1,100 +1,236 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-
+import { useEffect, useState, useMemo } from "react";
+import { Card, Row, Col, Button, Table, Typography, Space, Tag, Collapse, Flex } from "antd";
+import api from "../utils/api";
 import LibraryModal from "../components/LibraryModal";
-import AdminSummary from "../components/AdminSummary";
 
-export default function OwnerPage() {
+const { Title, Text } = Typography;
+const { Panel } = Collapse;
 
+export default function AdminAuditPage() {
+  /* ---------------- RAW DATA ---------------- */
+
+  const [rows, setRows] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
   const [summary, setSummary] = useState({});
   const [selectedLibrary, setSelectedLibrary] = useState(null);
-  const [decisions, setDecisions] = useState({});
-  const owner = "Admin"
+  // const { token } = theme.useToken();
+
+
+  /* ---------------- LOAD ---------------- */
 
   useEffect(() => {
-
-    axios
-      .get(`http://localhost:4000/api/sites`)
-      .then((res) => buildSummary(res.data))
-      .catch(console.error);
+    api.get("/sites").then((res) => buildSummary(res.data));
+    api.get("/campaigns").then((res) => setCampaigns(res.data));
   }, []);
 
-const buildSummary = (rows) => {
-  const grouped = {};
+  /* ---------------- YOUR EXISTING TRANSFORM ---------------- */
 
-  rows.forEach((row) => {
-    const superOwner = row.superOwner || "Unknown";
-    const site = row.URL;
-    const library = row.SharePointObject;
+  const buildSummary = (rows) => {
+    const grouped = {};
 
-    if (!superOwner || !site || !library) return;
+    rows.forEach((row) => {
+      const superOwner = row.superOwner || "Unknown";
+      const site = row.URL;
+      const library = row.SharePointObject;
 
-    if (!grouped[superOwner]) grouped[superOwner] = {};
-    if (!grouped[superOwner][site]) grouped[superOwner][site] = {};
-    if (!grouped[superOwner][site][library]) {
-      grouped[superOwner][site][library] = {
-        permissions: [],
-        directCount: 0,
-      };
-    }
+      if (!superOwner || !site || !library) return;
 
-    const isDirect = !row.GivenThrough || row.GivenThrough === row.Name;
+      if (!grouped[superOwner]) grouped[superOwner] = {};
+      if (!grouped[superOwner][site]) grouped[superOwner][site] = {};
+      if (!grouped[superOwner][site][library]) {
+        grouped[superOwner][site][library] = {
+          permissions: [],
+          directCount: 0,
+        };
+      }
 
-    if (isDirect) grouped[superOwner][site][library].directCount++;
+      const isDirect =
+        !row.GivenThrough || row.GivenThrough === row.Name;
 
-    grouped[superOwner][site][library].permissions.push({
-      principal: row.Name,
-      group: row.GivenThrough,
-      permission: row.Permission,
-      isDirect,
+      if (isDirect) grouped[superOwner][site][library].directCount++;
+
+      grouped[superOwner][site][library].permissions.push({
+        principal: row.Name,
+        group: row.GivenThrough,
+        permission: row.Permission,
+        isDirect,
+      });
     });
-  });
 
-  setSummary(grouped);
-};
+    setSummary(grouped);
+  };
 
-  const openLibrary = (superOwner, site, library) => {
+  /* ---------------- OPEN MODAL ---------------- */
+
+  const openLibrary = (site, library) => {
     setSelectedLibrary({
       site,
       library,
-      data: summary[superOwner][site][library].permissions,
+      data: summary[site][library].permissions.map((row, idx) => ({
+        ...row,
+        _idx: idx,
+        site,
+        library
+      })),
     });
   };
 
-//   const openLibrary = (superOwner, site, library) => {
-//     console.log(superOwner, site, library);
+  /* ---------------- CAMPAIGN HELPERS ---------------- */
 
-//     setSelectedSuperOwner(superOwner);
-//     setSelectedSite(site);
-//     setSelectedLibrary(library);
+  const latestCampaign = campaigns?.[0];
 
-//     setModalOpen(true);
-// };
+  const stats = useMemo(() => {
+    const totalSites = Object.values(summary)
+      .flatMap((s) => Object.keys(s)).length;
 
-  const closeLibraryModal = () => setSelectedLibrary(null);
+    const reviewedSites = campaigns.filter(
+      (c) => c.Status === "completed"
+    ).length;
 
-  return (
-    <div style={{ padding: 40, fontFamily: "Segoe UI, sans-serif" }}>
-      <h1>SharePoint Permission Review for Admin</h1>
+    return {
+      totalSites,
+      reviewedSites,
+      inProgress: campaigns.filter((c) => c.Status === "pending").length,
+    };
+  }, [summary, campaigns]);
 
-      <AdminSummary
-        owner={owner}
-        setOwner={() => { }}
-        summary={summary}
-        onOpenLibrary={openLibrary}
+  /* ---------------- START AUDIT ---------------- */
+
+  const startAudit = async () => {
+    await api.post("/campaigns", {
+      site: "ALL", // or per-site later
+    });
+
+    const res = await api.get("/campaigns");
+    setCampaigns(res.data);
+  };
+
+  const completeAudit = async (id) => {
+    await api.post(`/campaigns/${id}/complete`);
+    const res = await api.get("/campaigns");
+    setCampaigns(res.data);
+  };
+
+  /* ---------------- UI ---------------- */
+
+return (
+  <div style={{ padding: 24, background: "#f5f5f5", minHeight: "100vh" }}>
+
+    {/* ================= TOP CONTROLS ================= */}
+    <Card
+      styles={{ body: { padding: 16 } }}
+      style={{ marginBottom: 16, borderRadius: 8 }}
+    >
+      <Space>
+        <Button type="primary" onClick={startAudit}>
+          Start New Audit
+        </Button>
+
+        {latestCampaign && (
+          <Button onClick={() => completeAudit(latestCampaign.Id)}>
+            Complete Current Audit
+          </Button>
+        )}
+      </Space>
+    </Card>
+
+    {/* ================= SUMMARY CARDS ================= */}
+    <Row gutter={16} style={{ marginBottom: 16 }}>
+      <Col xs={24} md={8}>
+        <Card styles={{ body: { textAlign: "center" } }}>
+          <Title level={3} style={{ margin: 0 }}>
+            {stats.totalSites}
+          </Title>
+          <Text type="secondary">Total Sites</Text>
+        </Card>
+      </Col>
+
+      <Col xs={24} md={8}>
+        <Card styles={{ body: { textAlign: "center" } }}>
+          <Title level={3} style={{ margin: 0, color: "#2e7d32" }}>
+            {stats.reviewedSites}
+          </Title>
+          <Text type="secondary">Reviewed (Completed Campaigns)</Text>
+        </Card>
+      </Col>
+
+      <Col xs={24} md={8}>
+        <Card styles={{ body: { textAlign: "center" } }}>
+          <Title level={3} style={{ margin: 0, color: "#dc3545" }}>
+            {stats.inProgress}
+          </Title>
+          <Text type="secondary">In Progress</Text>
+        </Card>
+      </Col>
+    </Row>
+
+    {/* ================= CAMPAIGN STATUS ================= */}
+    <Card
+      styles={{ body: { padding: 16 } }}
+      style={{ marginBottom: 16, borderRadius: 8 }}
+    >
+      <Space>
+        <Text strong>Latest Campaign:</Text>
+        <Tag color={latestCampaign?.Status === "completed" ? "green" : "orange"}>
+          {latestCampaign?.Status || "None"}
+        </Tag>
+      </Space>
+    </Card>
+
+    {/* ================= HIERARCHY ================= */}
+    <Card
+      title="Sites Hierarchy"
+      styles={{ body: { padding: 0 } }}
+      style={{ borderRadius: 8 }}
+    >
+      <Collapse accordion bordered={false}>
+        {Object.entries(summary).map(([superOwner, sites]) => (
+          <Panel header={superOwner} key={superOwner}>
+            <Space direction="vertical" style={{ width: "100%" }} size={0}>
+              {Object.entries(sites).map(([site, libraries]) => {
+                const hasRisk = Object.values(libraries).some(
+                  (lib) => lib.directCount > 0
+                );
+
+                return (
+                  <div
+                    key={site}
+                    onClick={() => openLibrary(superOwner, site)}
+                    style={{
+                      padding: "12px 16px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #f0f0f0",
+                      transition: "background 0.2s",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#fafafa")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <Flex justify="space-between" align="center">
+                      <Text>{site}</Text>
+                      <Tag color={hasRisk ? "red" : "green"}>
+                        {hasRisk ? "Needs Review" : "OK"}
+                      </Tag>
+                    </Flex>
+                  </div>
+                );
+              })}
+            </Space>
+          </Panel>
+        ))}
+      </Collapse>
+    </Card>
+
+    {/* ================= MODAL ================= */}
+    {selectedLibrary && (
+      <LibraryModal
+        {...selectedLibrary}
+        onClose={() => setSelectedLibrary(null)}
       />
-
-
-      {selectedLibrary && (
-        <LibraryModal
-          site={selectedLibrary.site}
-          libraryName={selectedLibrary.library}
-          libraryData={selectedLibrary.data}
-          closeModal={closeLibraryModal}
-          decisions={decisions}
-          setDecisions={setDecisions}
-        />
-      )}
-    </div>
-  );
+    )}
+  </div>
+);
 }

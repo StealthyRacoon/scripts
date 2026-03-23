@@ -10,6 +10,7 @@ app.use(express.json());
 app.use("/api", require("./controllers/permissionsController"));
 app.use("/api", require("./controllers/superOwnersController"));
 app.use("/api", require("./controllers/auditController"));
+app.use("/api", require("./controllers/campaignController"));
 
 
 // app.use(express.static(path.join(__dirname, "dist")));

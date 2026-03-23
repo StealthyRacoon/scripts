@@ -9,8 +9,7 @@ import ConfirmChangesModal from "./ConfirmChangesModal";
 import api from "../utils/api";
 import { useStatus } from "../providers/StatusProvider";
 
-const { Title, Text } = Typography;
-const { Panel } = Collapse;
+const { Title } = Typography;
 
 export default function LibraryModal({
     libraryName,
