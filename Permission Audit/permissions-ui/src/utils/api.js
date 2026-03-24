@@ -2,7 +2,7 @@ import axios from "axios";
 
 // ✅ Create a single shared instance
 const api = axios.create({
-  baseURL: "http://localhost:4000/api",
+  baseURL: "http://10.68.68.18:4000/api",
   timeout: 10000,
 });
 
