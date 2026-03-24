@@ -21,6 +21,19 @@ export default function PermissionTable({
   useEffect(() => {
     if (!data.length) return;
 
+    setSelectedRows((prev) => {
+      const next = { ...prev };
+
+      data.forEach((row) => {
+        const key = getRowKey(row);
+        if (row.decision !== null && row.decision !== undefined) {
+          next[key] = true;
+        }
+      });
+
+      return next;
+    });
+
     setDecisions((prev) => {
       const next = { ...prev };
 

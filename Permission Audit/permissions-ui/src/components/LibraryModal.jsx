@@ -32,7 +32,6 @@ export default function LibraryModal({
 
     const { notify } = useStatus();
 
-    console.log("Library data received in modal:", libraryData);
     const groupedData = useMemo(() => {
         const permGroups = {};
         libraryData.forEach((row, idx) => {
