@@ -1,15 +1,24 @@
-
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
 const crypto = require("crypto");
-
+const { getActiveCampaign } = require("../services/campaignService");
 
 
 router.get("/superownerspermissions", async (req, res, next) => {
     const owner = req.query.owner;
 
     try {
+        const activeCampaign = await getActiveCampaign();
+
+        if (!activeCampaign) {
+            return res.status(403).json({
+                message: "No audit in progress",
+            });
+        }
+
+        const campaignId = activeCampaign.Id;
+
         const sql = `
         SELECT 
             so.Name AS superOwner,
@@ -23,7 +32,7 @@ router.get("/superownerspermissions", async (req, res, next) => {
 
         const rows = await db.query(sql, [owner]);
 
-        res.json(rows);
+        res.json({rows, campaignId});
     } catch (err) {
         next(err);
     }

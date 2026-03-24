@@ -5,6 +5,7 @@ import api from "../utils/api";
 
 import OwnerSearch from "../components/OwnerSearch";
 import LibraryModal from "../components/LibraryModal";
+import { set } from "lodash";
 
 
 export default function OwnerPage() {
@@ -16,13 +17,17 @@ export default function OwnerPage() {
   const [superOwner, setSuperOwner] = useState();
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+  const [campaignId, setCampaignId] = useState(null);
+
   useEffect(() => {
     if (!owner) return;
 
     api
       .get(`/superownerspermissions?owner=${encodeURIComponent(owner)}`)
-      .then((res) => buildSummary(res.data))
+      .then((res) => {
+        setCampaignId(res.data.campaignId);
+        buildSummary(res.data.rows)
+      })
       .catch(console.error);
   }, [owner]);
 
@@ -56,8 +61,12 @@ export default function OwnerPage() {
 
 
   const buildSummary = (rows) => {
+    if (!rows?.length) return;
+
     const grouped = {};
-    setSuperOwner(rows[0].superOwner)
+
+    // SuperOwner context
+    setSuperOwner(rows[0].superOwner);
 
     rows.forEach((row) => {
       const site = row.URL;
@@ -66,18 +75,37 @@ export default function OwnerPage() {
       if (!site || !library) return;
 
       if (!grouped[site]) grouped[site] = {};
-      if (!grouped[site][library]) grouped[site][library] = { permissions: [], directCount: 0 };
+      if (!grouped[site][library]) {
+        grouped[site][library] = {
+          permissions: [],
+          directCount: 0,
+        };
+      }
 
       const isDirect = !row.GivenThrough || row.GivenThrough === row.Name;
-
       if (isDirect) grouped[site][library].directCount++;
 
       grouped[site][library].permissions.push({
+        /* === Existing permission data === */
+        permissionId: row.Id,
         principal: row.Name,
         group: row.GivenThrough,
         email: row.Email,
         permission: row.Permission,
+        principalType: row.PrincipalType,
+        isExternalUser: row.IsExternalUser,
+        department: row.Department,
+        jobTitle: row.JobTitle,
         isDirect,
+
+        /* === Audit persistence data === */
+        auditId: row.auditId ?? null,
+        decision: row.Decision ?? null,
+        adminApproved: row.adminApproved ?? null,
+        adminApprovedTimestamp: row.adminApprovedTimestamp ?? null,
+        auditTimestamp: row.auditTimestamp ?? null,
+        groupName: row.GroupName ?? null,
+        campaignId: row.campaignId ?? null,
       });
     });
 
@@ -123,6 +151,7 @@ export default function OwnerPage() {
           selectedLibrary={selectedLibrary}
           loading={loading}
           setLoading={setLoading}
+          campaignId={campaignId}
         />
       )}
     </div>

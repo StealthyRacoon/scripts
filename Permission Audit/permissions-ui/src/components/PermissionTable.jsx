@@ -1,5 +1,6 @@
 import { Table, Button, Space, Checkbox, Tag, Tooltip } from "antd";
 import { CheckOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useEffect } from "react";
 
 export default function PermissionTable({
   data = [],
@@ -11,12 +12,34 @@ export default function PermissionTable({
   setAddedUsers,
   site,
   perm,
-  group
+  group,
 }) {
   const getRowKey = (row) => `${row.email}-${row._idx}`;
   const getDecisionKey = (row) => `${row.principal}-${row._idx}`;
 
+  /* ✅ HYDRATE state from DB on first load */
+  useEffect(() => {
+    if (!data.length) return;
+
+    setDecisions((prev) => {
+      const next = { ...prev };
+
+      data.forEach((row) => {
+        const key = getDecisionKey(row);
+        if (row.decision && !next[key]) {
+          next[key] = row.decision;
+        }
+      });
+
+      return next;
+    });
+  }, [data, setSelectedRows, setDecisions]);
+
+  /* ---------- helpers ---------- */
+
   const toggleSelectRow = (row) => {
+    if (row.adminApproved) return;
+
     const key = getRowKey(row);
     setSelectedRows((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -24,14 +47,21 @@ export default function PermissionTable({
   const toggleSelectAll = (checked) => {
     const updated = { ...selectedRows };
     data.forEach((r) => {
-      updated[getRowKey(r)] = checked;
+      if (!r.adminApproved) {
+        updated[getRowKey(r)] = checked;
+      }
     });
     setSelectedRows(updated);
   };
 
   const setDecision = (row, value) => {
-    const key = getDecisionKey(row);
-    setDecisions((prev) => ({ ...prev, [key]: value }));
+    if (row.adminApproved) return;
+
+    const decisionKey = getDecisionKey(row);
+    const rowKey = getRowKey(row);
+
+    setSelectedRows((prev) => ({ ...prev, [rowKey]: true }));
+    setDecisions((prev) => ({ ...prev, [decisionKey]: value }));
   };
 
   const selectedCount = data.filter(
@@ -51,18 +81,29 @@ export default function PermissionTable({
     (u) => u.site === site && u.perm === perm && u.group === group
   );
 
+  /* ---------- columns ---------- */
+
   const columns = [
     {
       title: (
         <Checkbox
           onChange={(e) => toggleSelectAll(e.target.checked)}
-          checked={data.length > 0 && data.every((r) => selectedRows[getRowKey(r)])}
+          checked={
+            data.length > 0 &&
+            data.every(
+              (r) =>
+                r.adminApproved ||
+                selectedRows[getRowKey(r)]
+            )
+          }
         />
       ),
-      dataIndex: "select",
       render: (_, record) => (
         <Checkbox
-          checked={!!selectedRows[getRowKey(record)]}
+          checked={
+            !!selectedRows[getRowKey(record)]
+          }
+          disabled={record.adminApproved}
           onChange={() => toggleSelectRow(record)}
         />
       ),
@@ -73,24 +114,18 @@ export default function PermissionTable({
       dataIndex: "principal",
     },
     {
-      title: (
+      title:
         selectedCount > 0 ? (
           <Space>
             <Tooltip title="Approve selected">
               <Button
-                type={data
-                  .filter((r) => selectedRows[getRowKey(r)])
-                  .every((r) => decisions[getDecisionKey(r)] === "Approve") &&
-                  data.some((r) => selectedRows[getRowKey(r)])
-                  ? "primary"
-                  : "default"}
                 icon={<CheckOutlined />}
                 onClick={() =>
-                  data.forEach((r) => {
-                    if (selectedRows[getRowKey(r)]) {
-                      setDecision(r, "Approve");
-                    }
-                  })
+                  data.forEach(
+                    (r) =>
+                      selectedRows[getRowKey(r)] &&
+                      setDecision(r, "Approve")
+                  )
                 }
               />
             </Tooltip>
@@ -98,34 +133,32 @@ export default function PermissionTable({
             <Tooltip title="Remove selected">
               <Button
                 danger
-                type={data
-                  .filter((r) => selectedRows[getRowKey(r)])
-                  .every((r) => decisions[getDecisionKey(r)] === "Remove") &&
-                  data.some((r) => selectedRows[getRowKey(r)])
-                  ? "primary"
-                  : "default"}
                 icon={<DeleteOutlined />}
                 onClick={() =>
-                  data.forEach((r) => {
-                    if (selectedRows[getRowKey(r)]) {
-                      setDecision(r, "Remove");
-                    }
-                  })
+                  data.forEach(
+                    (r) =>
+                      selectedRows[getRowKey(r)] &&
+                      setDecision(r, "Remove")
+                  )
                 }
               />
             </Tooltip>
           </Space>
         ) : (
           "Decision"
-        )
-      ),
+        ),
       render: (_, record) => {
         const decisionKey = getDecisionKey(record);
+        const currentDecision =
+          decisions[decisionKey] ?? record.decision;
+
+        const locked = record.adminApproved;
 
         return (
           <Space>
             <Button
-              type={decisions[decisionKey] === "Approve" ? "primary" : "default"}
+              disabled={locked}
+              type={currentDecision === "Approve" ? "primary" : "default"}
               icon={<CheckOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
@@ -133,8 +166,9 @@ export default function PermissionTable({
               }}
             />
             <Button
+              disabled={locked}
               danger
-              type={decisions[decisionKey] === "Remove" ? "primary" : "default"}
+              type={currentDecision === "Remove" ? "primary" : "default"}
               icon={<DeleteOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
@@ -150,7 +184,7 @@ export default function PermissionTable({
   return (
     <div style={{ marginTop: 10 }}>
       <Table
-        rowKey={(record) => getRowKey(record)}
+        rowKey={(r) => getRowKey(r)}
         columns={columns}
         dataSource={data}
         pagination={false}
@@ -158,13 +192,15 @@ export default function PermissionTable({
         onRow={(record) => ({
           onClick: () => toggleSelectRow(record),
         })}
+        rowClassName={(record) =>
+          record.adminApproved ? "approved-row" : ""
+        }
       />
 
-      {/* Added Users */}
       {filteredAddedUsers.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <strong>Added Users:</strong>
-          <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
             {filteredAddedUsers.map((user) => (
               <Tag
                 key={user.email}

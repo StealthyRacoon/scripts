@@ -20,7 +20,8 @@ export default function LibraryModal({
     allUsers,
     selectedLibrary,
     loading,
-    setLoading
+    setLoading,
+    campaignId
 }) {
     const [expandedGroups, setExpandedGroups] = useState({});
     const [selectedRows, setSelectedRows] = useState({});
@@ -31,6 +32,7 @@ export default function LibraryModal({
 
     const { notify } = useStatus();
 
+    console.log("Library data received in modal:", libraryData);
     const groupedData = useMemo(() => {
         const permGroups = {};
         libraryData.forEach((row, idx) => {
@@ -71,26 +73,28 @@ export default function LibraryModal({
                 site: row.site,
                 library: row.library,
                 UPN: row.email,
-                perm: row.permission || row.perm || "No Permission",
-                group: row.group || "Direct",
-                decision,
+                Permission: row.permission || row.perm || "No Permission",
+                GroupName: row.group || "Direct",
+                Decision: decision,
+                campaignId, // ✅ ADDED
             });
         });
 
         (addedUsers || []).forEach((u) => {
             normalizedLog.push({
-                principal,
+                principal: u.name || u.email,
                 site: u.site,
                 library: selectedLibrary.library,
                 UPN: u.email,
-                perm: u.perm,
-                group: u.group,
-                decision: "Add",
+                Permission: u.perm,
+                GroupName: u.group,
+                Decision: "Add",
+                campaignId, // ✅ ADDED
             });
         });
 
-        
         setLoading({ showMessage: true, isLoading: true, color: "#faad14" });
+
         try {
             await api.post("/audit", normalizedLog);
             notify.success("Changes submitted and audit log saved!");

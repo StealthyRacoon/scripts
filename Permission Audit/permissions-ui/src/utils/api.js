@@ -2,7 +2,7 @@ import axios from "axios";
 
 // ✅ Create a single shared instance
 const api = axios.create({
-  baseURL: "http://10.68.68.18:4000/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
 });
 
