@@ -40,3 +40,13 @@ SELECT
 FROM SharePointPermissions sp
 JOIN SuperOwners so
     ON sp.URL = so.URL
+
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_auditlogs_unique
+ON AuditLogs (
+    site,
+    library,
+    principal,
+    UPN,
+    campaignId
+);

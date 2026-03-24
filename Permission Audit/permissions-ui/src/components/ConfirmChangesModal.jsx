@@ -1,68 +1,108 @@
-import { Modal, Typography, Tag, Space, Button, Divider, Card, theme } from "antd";
-import { CheckCircleOutlined, CloseCircleOutlined, UserAddOutlined } from "@ant-design/icons";
+import {
+  Modal,
+  Typography,
+  Tag,
+  Space,
+  Button,
+  Divider,
+  Card,
+  theme,
+} from "antd";
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  UserAddOutlined,
+} from "@ant-design/icons";
 
 const { Text, Title } = Typography;
 
 export default function ConfirmChangesModal({
-  decisions,
+  libraryData = [],
   addedUsers,
   close,
   confirm,
-  rowLookup,
 }) {
   const { token } = theme.useToken();
 
   // ------------------------
-  // Added Users (already structured well)
+  // DERIVE CHANGES FROM SUMMARY
   // ------------------------
-  const addedByPermGroup = {};
+  const changedRows = (libraryData || []).filter(
+    (row) => row.decision != null
+  );
+
+  // ------------------------
+  // UI-added users (state)
+  // ------------------------
+  const addedByPermGroupUI = {};
   (addedUsers || []).forEach((u) => {
     const perm = u.perm || "No Permission";
     const group = u.group || "Direct";
 
-    if (!addedByPermGroup[perm]) addedByPermGroup[perm] = {};
-    if (!addedByPermGroup[perm][group]) addedByPermGroup[perm][group] = {};
+    if (!addedByPermGroupUI[perm]) addedByPermGroupUI[perm] = {};
+    if (!addedByPermGroupUI[perm][group])
+      addedByPermGroupUI[perm][group] = {};
 
     const key = u.email;
-    addedByPermGroup[perm][group][key] = u;
+    addedByPermGroupUI[perm][group][key] = u;
   });
 
-  const hasAdded = Object.keys(addedByPermGroup).length > 0;
+  // ------------------------
+  // DB-added users (decision = "Add")
+  // ------------------------
+  const addedByPermGroupDB = {};
 
   // ------------------------
-  // Decisions (FIXED: deduplicated + structured)
+  // Decisions (Approve / Remove / Add separated)
   // ------------------------
   const approvedByPermGroup = {};
   const removedByPermGroup = {};
 
-  Object.entries(decisions || {}).forEach(([key, value]) => {
-    const [principal, idx] = key.split("-");
-    const row = rowLookup?.[`${principal}-${idx}`];
-    if (!row) return;
+  const ensureBuckets = (container, perm, group) => {
+    if (!container[perm]) container[perm] = {};
+    if (!container[perm][group]) container[perm][group] = {};
+    return container[perm][group];
+  };
 
+  changedRows.forEach((row) => {
     const perm = row.permission || row.perm || "No Permission";
     const group = row.group || "Direct";
 
-    const ensureBuckets = (container) => {
-      if (!container[perm]) container[perm] = {};
-      if (!container[perm][group]) container[perm][group] = {};
-      return container[perm][group];
-    };
-
-    const userKey = row.email || principal;
+    const userKey = row.email || row.principal;
 
     const userValue = {
-      name: row.name || principal,
-      email: row.email || principal,
+      name: row.principal,
+      email: row.email || row.principal,
     };
 
-    if (value === "Approve") {
-      ensureBuckets(approvedByPermGroup)[userKey] = userValue;
-    } else if (value === "Remove") {
-      ensureBuckets(removedByPermGroup)[userKey] = userValue;
+    if (row.decision === "Approve") {
+      ensureBuckets(approvedByPermGroup, perm, group)[userKey] = userValue;
+    } else if (row.decision === "Remove") {
+      ensureBuckets(removedByPermGroup, perm, group)[userKey] = userValue;
+    } else if (row.decision === "Add") {
+      ensureBuckets(addedByPermGroupDB, perm, group)[userKey] = userValue;
     }
   });
 
+  // ------------------------
+  // MERGE UI + DB ADDED USERS
+  // ------------------------
+  const addedByPermGroup = { ...addedByPermGroupUI };
+
+  Object.entries(addedByPermGroupDB).forEach(([perm, groups]) => {
+    if (!addedByPermGroup[perm]) addedByPermGroup[perm] = {};
+
+    Object.entries(groups).forEach(([group, users]) => {
+      if (!addedByPermGroup[perm][group])
+        addedByPermGroup[perm][group] = {};
+
+      Object.entries(users).forEach(([key, user]) => {
+        addedByPermGroup[perm][group][key] = user;
+      });
+    });
+  });
+
+  const hasAdded = Object.keys(addedByPermGroup).length > 0;
   const hasApproved = Object.keys(approvedByPermGroup).length > 0;
   const hasRemoved = Object.keys(removedByPermGroup).length > 0;
 
@@ -70,7 +110,7 @@ export default function ConfirmChangesModal({
   // Render helper
   // ------------------------
   const renderGroupSection = (perm, groups, type) => {
-    const isAdded = type === "added";
+    const isAdded = type === "add";
     const isApproved = type === "approved";
     const isRemoved = type === "removed";
 
@@ -96,14 +136,9 @@ export default function ConfirmChangesModal({
       <Card
         key={`${type}-${perm}`}
         size="small"
-        style={{
-          marginBottom: 12,
-          borderColor,
-        }}
+        style={{ marginBottom: 12, borderColor }}
         styles={{
-          header: {
-            background: headerBg,
-          },
+          header: { background: headerBg },
         }}
         title={<Text strong>Permission: {perm}</Text>}
       >
@@ -111,7 +146,14 @@ export default function ConfirmChangesModal({
           <div key={`${type}-${perm}-${group}`} style={{ marginBottom: 10 }}>
             <Text strong>Group: {group}</Text>
 
-            <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <div
+              style={{
+                marginTop: 6,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+              }}
+            >
               {Object.values(items).map((user) => (
                 <Tag key={user.email} color={tagColor}>
                   {user.name}
@@ -127,16 +169,16 @@ export default function ConfirmChangesModal({
   // ------------------------
   // Sections
   // ------------------------
-  const addedSections = Object.entries(addedByPermGroup).map(([perm, groups]) =>
-    renderGroupSection(perm, groups, "added")
+  const addedSections = Object.entries(addedByPermGroup).map(
+    ([perm, groups]) => renderGroupSection(perm, groups, "add")
   );
 
-  const approvedSections = Object.entries(approvedByPermGroup).map(([perm, groups]) =>
-    renderGroupSection(perm, groups, "approved")
+  const approvedSections = Object.entries(approvedByPermGroup).map(
+    ([perm, groups]) => renderGroupSection(perm, groups, "approved")
   );
 
-  const removedSections = Object.entries(removedByPermGroup).map(([perm, groups]) =>
-    renderGroupSection(perm, groups, "removed")
+  const removedSections = Object.entries(removedByPermGroup).map(
+    ([perm, groups]) => renderGroupSection(perm, groups, "removed")
   );
 
   // ------------------------
@@ -194,6 +236,10 @@ export default function ConfirmChangesModal({
             <Divider style={{ margin: "8px 0" }} />
             {removedSections}
           </div>
+        )}
+
+        {!hasAdded && !hasApproved && !hasRemoved && (
+          <Text type="secondary">No changes made.</Text>
         )}
 
         <Divider />

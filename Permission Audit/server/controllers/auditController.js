@@ -20,20 +20,24 @@ router.post("/audit", async (req, res, next) => {
 
         const campaignId = activeCampaign.Id;
 
-        const insertQuery = `
-        INSERT INTO AuditLogs (
-            principal,
-            site,
-            library,
-            UPN,
-            Permission,
-            GroupName,
-            Decision,
-            timestamp,
-            adminApproved,
-            campaignId
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, False, ?)
+        const upsertQuery = `
+      INSERT INTO AuditLogs (
+        principal,
+        site,
+        library,
+        UPN,
+        Permission,
+        GroupName,
+        Decision,
+        timestamp,
+        adminApproved,
+        campaignId
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, False, ?)
+      ON CONFLICT (site, library, principal, UPN, campaignId)
+      DO UPDATE SET
+        Decision = excluded.Decision,
+        timestamp = excluded.timestamp
     `;
 
         for (const log of logs) {
@@ -47,7 +51,7 @@ router.post("/audit", async (req, res, next) => {
                 Decision,
             } = log;
 
-            await db.query(insertQuery, [
+            await db.query(upsertQuery, [
                 principal,
                 site,
                 library,
@@ -68,7 +72,6 @@ router.post("/audit", async (req, res, next) => {
         next(err);
     }
 });
-
 
 router.get("/audit", async (req, res, next) => {
     try {

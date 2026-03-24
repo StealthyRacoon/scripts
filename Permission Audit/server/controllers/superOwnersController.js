@@ -19,34 +19,45 @@ router.get("/superownerspermissions", async (req, res, next) => {
 
         const campaignId = activeCampaign.Id;
 
+        // SELECT 
+        //     so.Name AS superOwner,
+        //     so.*,
+        //     sp.*
+        // FROM SharePointPermissions sp
+        // JOIN SuperOwners so
+        //     ON sp.URL = so.URL
+        // WHERE so.Secret = "?";
+
         const sql = `
-        SELECT
-            so.Name AS superOwner,
-            so.*,
-            sp.*,
-            al.id                AS auditId,
-            al.Decision,
-            al.adminApproved,
-            al.adminApprovedTimestamp,
-            al.timestamp         AS auditTimestamp,
-            al.GroupName,
-            al.Permission        AS auditedPermission,
-            al.campaignId
-        FROM SharePointPermissions sp
-        JOIN SuperOwners so
-            ON sp.URL = so.URL
-        LEFT JOIN AuditLogs al
-            ON al.site = sp.URL
-            AND al.library = sp.SharePointObject
-            AND al.principal = sp.Name
-            AND al.UPN = sp.Email
-            AND al.Permission = sp.Permission
-        WHERE so.Secret = ?;
+         SELECT
+    so.Name AS superOwner,
+    so.*,
+    sp.*,
+    al.id                AS auditId,
+    al.Decision,
+    al.adminApproved,
+    al.adminApprovedTimestamp,
+    al.timestamp         AS auditTimestamp,
+    al.GroupName,
+    al.Permission        AS auditedPermission,
+    al.campaignId
+FROM SharePointPermissions sp
+JOIN SuperOwners so
+    ON sp.URL = so.URL
+LEFT JOIN AuditLogs al
+    ON al.site = sp.URL
+    AND al.library = sp.SharePointObject
+    AND al.principal = sp.Name
+--    AND al.UPN = sp.Email
+--    AND al.Permission = sp.Permission
+WHERE so.Secret = ?;
         `;
+
+        console.log("Executing SQL:", sql, "with secret:", owner);
 
         const rows = await db.query(sql, [owner]);
 
-        res.json({rows, campaignId});
+        res.json({ rows, campaignId });
     } catch (err) {
         next(err);
     }

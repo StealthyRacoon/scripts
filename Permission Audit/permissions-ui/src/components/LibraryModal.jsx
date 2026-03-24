@@ -21,13 +21,16 @@ export default function LibraryModal({
     selectedLibrary,
     loading,
     setLoading,
-    campaignId
+    campaignId,
+    updateDecision,
+    addedUsers,
+    setAddedUsers,
 }) {
     const [expandedGroups, setExpandedGroups] = useState({});
     const [selectedRows, setSelectedRows] = useState({});
     const [showAddUserModal, setShowAddUserModal] = useState(false);
     const [activeGroup, setActiveGroup] = useState(null);
-    const [addedUsers, setAddedUsers] = useState([]);
+    
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const { notify } = useStatus();
@@ -49,62 +52,41 @@ export default function LibraryModal({
         setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const rowLookup = useMemo(() => {
-        const map = {};
-        (libraryData || []).forEach((row, idx) => {
-            map[`${row.principal}-${idx}`] = { ...row, _idx: idx };
-        });
-        return map;
-    }, [libraryData]);
+
 
     const handleConfirmChanges = async () => {
-        const normalizedLog = [];
+        const changedRows = (libraryData || []).filter(
+            (row) => row.decision != null
+        );
 
-        Object.entries(decisions || {}).forEach(([key, decision]) => {
-            const [principal, idx] = key.split("-");
-            const row = libraryData.find(
-                (r) => r.principal === principal && r._idx?.toString() === idx
-            );
-            if (!row) return;
+        const normalizedLog = changedRows.map((row) => ({
+            principal: row.principal,
+            site: row.site,
+            library: row.library,
+            UPN: row.email,
+            Permission: row.permission || row.perm || "No Permission",
+            GroupName: row.group || "Direct",
+            Decision: row.decision,
+            campaignId,
+        }));
 
-            normalizedLog.push({
-                principal,
-                site: row.site,
-                library: row.library,
-                UPN: row.email,
-                Permission: row.permission || row.perm || "No Permission",
-                GroupName: row.group || "Direct",
-                Decision: decision,
-                campaignId, // ✅ ADDED
-            });
-        });
 
-        (addedUsers || []).forEach((u) => {
-            normalizedLog.push({
-                principal: u.name || u.email,
-                site: u.site,
-                library: selectedLibrary.library,
-                UPN: u.email,
-                Permission: u.perm,
-                GroupName: u.group,
-                Decision: "Add",
-                campaignId, // ✅ ADDED
-            });
-        });
-
-        setLoading({ showMessage: true, isLoading: true, color: "#faad14" });
+        if (normalizedLog.length === 0) {
+            console.log("No changes to submit");
+            return;
+        }
 
         try {
             await api.post("/audit", normalizedLog);
-            notify.success("Changes submitted and audit log saved!");
-        } catch (error) {
-            setLoading({ showMessage: true, isLoading: false, color: "#f5222d" });
-        } finally {
-            setLoading({ showMessage: false, isLoading: false });
-            setShowConfirmModal(false);
-            closeModal();
+            notify.success("Changes submitted!");
+        } catch (err) {
+            console.error(err);
         }
+
+        setShowConfirmModal(false);
+        closeModal();
     };
+
 
     return (
         <>
@@ -156,6 +138,7 @@ export default function LibraryModal({
                                                             site={selectedLibrary.site}
                                                             perm={perm}
                                                             group={group}
+                                                            updateDecision={updateDecision}
                                                         />
 
                                                         <Button
@@ -196,11 +179,10 @@ export default function LibraryModal({
 
             {showConfirmModal && (
                 <ConfirmChangesModal
-                    decisions={decisions}
+                    libraryData={libraryData}
                     addedUsers={addedUsers}
                     close={() => setShowConfirmModal(false)}
                     confirm={handleConfirmChanges}
-                    rowLookup={rowLookup}
                 />
 
             )}

@@ -5,7 +5,6 @@ import api from "../utils/api";
 
 import OwnerSearch from "../components/OwnerSearch";
 import LibraryModal from "../components/LibraryModal";
-import { set } from "lodash";
 
 
 export default function OwnerPage() {
@@ -18,6 +17,7 @@ export default function OwnerPage() {
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [campaignId, setCampaignId] = useState(null);
+  const [addedUsers, setAddedUsers] = useState([]);
 
   useEffect(() => {
     if (!owner) return;
@@ -25,6 +25,7 @@ export default function OwnerPage() {
     api
       .get(`/superownerspermissions?owner=${encodeURIComponent(owner)}`)
       .then((res) => {
+        console.log()
         setCampaignId(res.data.campaignId);
         buildSummary(res.data.rows)
       })
@@ -40,6 +41,18 @@ export default function OwnerPage() {
       })
       .catch(console.error);
   }, []);
+
+  const updateDecision = (site, library, idx, newDecision) => {
+    setSummary((prev) => {
+      const updated = { ...prev };
+
+      const permission = updated[site][library].permissions[idx];
+      permission.decision = newDecision;
+
+      return { ...updated };
+    });
+  };
+
 
   const deduplicateUsers = (rawUsers) => {
     const emailMap = {};
@@ -113,17 +126,19 @@ export default function OwnerPage() {
   };
 
   const openLibrary = (site, library) => {
-    setSelectedLibrary({
-      site,
-      library,
-      data: summary[site][library].permissions.map((row, idx) => ({
-        ...row,
-        _idx: idx,        // assign _idx here
-        site,             // keep full site info
-        library           // keep full library name
-      })),
-    });
+    setSelectedLibrary({ site, library, });
   };
+
+  const libraryData =
+    selectedLibrary &&
+    summary[selectedLibrary.site]?.[selectedLibrary.library]?.permissions.map(
+      (row, idx) => ({
+        ...row,
+        _idx: idx,
+        site: selectedLibrary.site,
+        library: selectedLibrary.library,
+      })
+    );
 
   const closeLibraryModal = () => setSelectedLibrary(null);
 
@@ -139,11 +154,11 @@ export default function OwnerPage() {
         onOpenLibrary={openLibrary}
       />
 
-      {selectedLibrary && (
+      {selectedLibrary && libraryData && (
         <LibraryModal
           site={selectedLibrary.site}
           libraryName={selectedLibrary.library}
-          libraryData={selectedLibrary.data}
+          libraryData={libraryData}
           closeModal={closeLibraryModal}
           decisions={decisions}
           setDecisions={setDecisions}
@@ -152,6 +167,9 @@ export default function OwnerPage() {
           loading={loading}
           setLoading={setLoading}
           campaignId={campaignId}
+          updateDecision={updateDecision}
+          addedUsers={addedUsers}
+          setAddedUsers={setAddedUsers}
         />
       )}
     </div>

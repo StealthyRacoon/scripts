@@ -1,20 +1,54 @@
 import { Table, Button, Space, Checkbox, Tag, Tooltip } from "antd";
 import { CheckOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useEffect } from "react";
 
 export default function PermissionTable({
   data = [],
   selectedRows,
   setSelectedRows,
+  decisions,
+  setDecisions,
   addedUsers = [],
   setAddedUsers,
   site,
   perm,
   group,
-  updateDecision, // ✅ required
 }) {
   const getRowKey = (row) => `${row.email}-${row._idx}`;
+  const getDecisionKey = (row) => `${row.principal}-${row._idx}`;
 
-  /* ---------- selection helpers ---------- */
+  /* ✅ HYDRATE state from DB on first load */
+  useEffect(() => {
+    if (!data.length) return;
+
+    setSelectedRows((prev) => {
+      const next = { ...prev };
+
+      data.forEach((row) => {
+        const key = getRowKey(row);
+        if (row.decision !== null && row.decision !== undefined) {
+          next[key] = true;
+        }
+      });
+
+      return next;
+    });
+
+    setDecisions((prev) => {
+      const next = { ...prev };
+
+      data.forEach((row) => {
+        const key = getDecisionKey(row);
+        if (row.decision && !next[key]) {
+          next[key] = row.decision;
+        }
+      });
+
+      return next;
+    });
+  }, [data, setSelectedRows, setDecisions]);
+
+  /* ---------- helpers ---------- */
 
   const toggleSelectRow = (row) => {
     if (row.adminApproved) return;
@@ -33,25 +67,19 @@ export default function PermissionTable({
     setSelectedRows(updated);
   };
 
-  /* ---------- decision handler (SINGLE SOURCE OF TRUTH) ---------- */
-
-  const handleDecision = (row, value) => {
+  const setDecision = (row, value) => {
     if (row.adminApproved) return;
 
+    const decisionKey = getDecisionKey(row);
     const rowKey = getRowKey(row);
 
-    // mark selected (UI only)
     setSelectedRows((prev) => ({ ...prev, [rowKey]: true }));
-
-    // ✅ update global summary directly
-    updateDecision(row.site, row.library, row._idx, value);
+    setDecisions((prev) => ({ ...prev, [decisionKey]: value }));
   };
 
   const selectedCount = data.filter(
     (r) => selectedRows[getRowKey(r)]
   ).length;
-
-  /* ---------- added users ---------- */
 
   const removeAddedUser = (email) => {
     setAddedUsers((prev) =>
@@ -85,7 +113,9 @@ export default function PermissionTable({
       ),
       render: (_, record) => (
         <Checkbox
-          checked={!!selectedRows[getRowKey(record)]}
+          checked={
+            !!selectedRows[getRowKey(record)]
+          }
           disabled={record.adminApproved}
           onChange={() => toggleSelectRow(record)}
         />
@@ -107,7 +137,7 @@ export default function PermissionTable({
                   data.forEach(
                     (r) =>
                       selectedRows[getRowKey(r)] &&
-                      handleDecision(r, "Approve")
+                      setDecision(r, "Approve")
                   )
                 }
               />
@@ -121,7 +151,7 @@ export default function PermissionTable({
                   data.forEach(
                     (r) =>
                       selectedRows[getRowKey(r)] &&
-                      handleDecision(r, "Remove")
+                      setDecision(r, "Remove")
                   )
                 }
               />
@@ -131,27 +161,31 @@ export default function PermissionTable({
           "Decision"
         ),
       render: (_, record) => {
+        const decisionKey = getDecisionKey(record);
+        const currentDecision =
+          decisions[decisionKey] ?? record.decision;
+
         const locked = record.adminApproved;
 
         return (
           <Space>
             <Button
               disabled={locked}
-              type={record.decision === "Approve" ? "primary" : "default"}
+              type={currentDecision === "Approve" ? "primary" : "default"}
               icon={<CheckOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
-                handleDecision(record, "Approve");
+                setDecision(record, "Approve");
               }}
             />
             <Button
               disabled={locked}
               danger
-              type={record.decision === "Remove" ? "primary" : "default"}
+              type={currentDecision === "Remove" ? "primary" : "default"}
               icon={<DeleteOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
-                handleDecision(record, "Remove");
+                setDecision(record, "Remove");
               }}
             />
           </Space>
@@ -179,14 +213,7 @@ export default function PermissionTable({
       {filteredAddedUsers.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <strong>Added Users:</strong>
-          <div
-            style={{
-              marginTop: 8,
-              display: "flex",
-              gap: 6,
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
             {filteredAddedUsers.map((user) => (
               <Tag
                 key={user.email}
