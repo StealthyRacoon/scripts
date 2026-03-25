@@ -4,7 +4,7 @@
 
 $CsvPath = "Permissions.csv"
 $SuperOwners = "SuperOwners.csv"
-$DatabasePath = "C:\Users\sarang.gadhiya\Downloads\Scripts\Permission Audit\Permissions.db"
+$DatabasePath = "C:\Bypass\GitHub\scripts\Permission Audit\server\Permissions.db"
 $TableName = "SharePointPermissions"
 
 
@@ -197,5 +197,5 @@ function CreateSuperOwnerTable {
 
 
 
-# CreatePermissionsTable
+CreatePermissionsTable
 CreateSuperOwnerTable

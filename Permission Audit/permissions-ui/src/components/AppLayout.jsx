@@ -1,46 +1,15 @@
-import { Layout, Switch, Typography, theme } from "antd";
-import { useAppTheme } from "../theme/appTheme";
-
-const { Header, Content, Footer } = Layout;
+import { useLocation } from "react-router-dom";
+import DefaultLayout from "./DefaultLayout";
+import AdminLayout from "./AdminLayout";
 
 export default function AppLayout({ children }) {
-  const { mode, toggleTheme } = useAppTheme();
-  const { token } = theme.useToken();
+  const location = useLocation();
 
-  return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: `1px solid ${token.colorBorder}`,
-          background: token.colorBgBase,
-        }}
-      >
-        <Typography.Title
-          level={4}
-          style={{
-            color: token.colorTextBase,
-            margin: 0,
-          }}
-        >
-          SharePoint Review
-        </Typography.Title>
+  const isDashboard = location.pathname.startsWith("/admin");
 
-        <Switch
-          checked={mode === "dark"}
-          onChange={toggleTheme}
-          checkedChildren="Dark"
-          unCheckedChildren="Light"
-        />
-      </Header>
-
-      <Content style={{ padding: 24 }}>{children}</Content>
-
-      <Footer style={{ textAlign: "center", color: token.colorTextSecondary }}>
-        Sustainable Timber Tasmania
-      </Footer>
-    </Layout>
+  return isDashboard ? (
+    <AdminLayout>{children}</AdminLayout>
+  ) : (
+    <DefaultLayout>{children}</DefaultLayout>
   );
 }
