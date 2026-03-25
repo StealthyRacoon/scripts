@@ -13,7 +13,6 @@ export default function PermissionTable({
   updateDecision, // ✅ required
 }) {
   const getRowKey = (row) => `${row.email}-${row._idx}`;
-  console.log(data)
 
   // remove duplicates (same email + decision) - can happen when ms teams and sharepoint groups overlap
   const uniqueData = [];
