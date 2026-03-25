@@ -53,7 +53,6 @@ LEFT JOIN AuditLogs al
 WHERE so.Secret = ?;
         `;
 
-        console.log("Executing SQL:", sql, "with secret:", owner);
 
         const rows = await db.query(sql, [owner]);
 
