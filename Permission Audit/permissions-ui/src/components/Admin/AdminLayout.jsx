@@ -5,7 +5,7 @@ import {
   SettingOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { useAppTheme } from "../theme/appTheme";
+import { useAppTheme } from "../../theme/appTheme";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 

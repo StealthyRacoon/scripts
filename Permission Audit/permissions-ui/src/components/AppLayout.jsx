@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import DefaultLayout from "./DefaultLayout";
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "./Admin/AdminLayout";
 
 export default function AppLayout({ children }) {
   const location = useLocation();

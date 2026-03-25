@@ -1,5 +1,5 @@
 import { Layout, Switch, Typography, theme } from "antd";
-import { useAppTheme } from "../theme/appTheme";
+import { useAppTheme } from "../../theme/appTheme";
 
 const { Header, Content, Footer } = Layout;
 

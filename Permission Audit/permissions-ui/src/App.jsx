@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import OwnerPage from "./pages/OwnerPage";
 import AdminPage from "./pages/AdminPage";
 import AppLayout from "./components/AppLayout";
-import AdminImport from "./components/AdminImport";
+import AdminImport from "./components/Admin/AdminImport";
 import Dashboard from "./pages/Dashboard";
 import { StatusProvider } from "./providers/StatusProvider";
 
