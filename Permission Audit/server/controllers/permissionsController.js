@@ -40,4 +40,56 @@ router.get("/users", async (req, res, next) => {
     }
 });
 
+router.post("/uploadreport", async (req, res, next) => {
+  try {
+    const { rows, firstChunk } = req.body;
+
+    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ message: "No data provided" });
+    }
+
+    const campaignId = rows[0].campaignId;
+    if (!campaignId) {
+      return res.status(400).json({ message: "campaignId is required" });
+    }
+
+    // ✅ Only remove existing records on the first chunk
+    if (firstChunk) {
+      await db.query(
+        "DELETE FROM SharePointPermissions WHERE campaignId = ?",
+        [campaignId]
+      );
+    }
+
+    // ✅ Insert rows in this chunk
+    const columns = Object.keys(rows[0]).join(", ");
+    const valuesPlaceholders = rows
+      .map(
+        () =>
+          "(" + Object.keys(rows[0]).map(() => "?").join(", ") + ")"
+      )
+      .join(", ");
+
+    const values = rows.flatMap((row) =>
+      Object.keys(rows[0]).map((col) => row[col] ?? null)
+    );
+
+    const insertQuery = `
+      INSERT INTO SharePointPermissions (${columns})
+      VALUES ${valuesPlaceholders}
+    `;
+
+    await db.query(insertQuery, values);
+
+    res.status(200).json({
+      message: firstChunk
+        ? "First chunk uploaded and previous campaign data removed"
+        : "Chunk uploaded successfully",
+      inserted: rows.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

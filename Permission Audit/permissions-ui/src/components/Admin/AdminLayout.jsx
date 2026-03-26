@@ -4,6 +4,7 @@ import {
   UserOutlined,
   SettingOutlined,
   UploadOutlined,
+  ProjectOutlined
 } from "@ant-design/icons";
 import { useAppTheme } from "../../theme/appTheme";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -55,6 +56,11 @@ export default function AdminLayout({ children }) {
               key: "/admin",
               icon: <DashboardOutlined />,
               label: "Dashboard",
+            },
+            {
+              key: "/admin/campaigns",
+              icon: <ProjectOutlined />,
+              label: "Campaigns",
             },
             {
               key: "/admin/import",

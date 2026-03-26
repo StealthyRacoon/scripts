@@ -15,17 +15,21 @@ export default function PermissionTable({
   const getRowKey = (row) => `${row.email}-${row._idx}`;
 
   // remove duplicates (same email + decision) - can happen when ms teams and sharepoint groups overlap
-  const uniqueData = [];
-  const seen = new Set();
-  data.forEach((item) => {
-    const identifier = `${item.email}-${item.decision}`;
-    if (!seen.has(identifier)) {
-      seen.add(identifier);
-      uniqueData.push(item);
-    }
-  });
 
-  data = uniqueData
+// This logic doesn't work
+  const uniqueData = [];
+const seenEmails = new Set();
+const seenPrincipals = new Set();
+
+data.forEach((item) => {
+  if (!seenEmails.has(item.email) && !seenPrincipals.has(item.principal)) {
+    seenEmails.add(item.email);
+    seenPrincipals.add(item.principal);
+    uniqueData.push(item);
+  }
+});
+
+data = uniqueData;
 
   /* ---------- selection helpers ---------- */
 
@@ -101,6 +105,7 @@ export default function PermissionTable({
           checked={!!selectedRows[getRowKey(record)]}
           disabled={record.adminApproved}
           onChange={() => toggleSelectRow(record)}
+          onClick={() => toggleSelectRow(record)}
         />
       ),
       width: 60,
