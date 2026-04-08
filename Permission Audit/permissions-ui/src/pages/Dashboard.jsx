@@ -4,6 +4,7 @@ import api from "../utils/api";
 
 import LibraryModal from "../components/LibraryModal";
 import SitePermissions from "../components/Admin/SitePermissions";
+import OwnerSearch from "../components/OwnerSearch";
 
 const { Title, Text } = Typography;
 
@@ -39,7 +40,7 @@ export default function Dashboard() {
     useEffect(() => {
         if (!campaignId) return;
 
-        api.get("/adminsites", { params: { campaignId: 5 } }).then((res) => setSummary(res.data));
+        api.get("/adminsites", { params: { campaignId } }).then((res) => setSummary(res.data));
 
 
     }, [campaignId]);
@@ -147,8 +148,10 @@ export default function Dashboard() {
     };
 
 
+
     return (
         <>
+
 
             <div style={{ marginBottom: 16 }}>
                 <Badge
@@ -191,6 +194,11 @@ export default function Dashboard() {
                     </Card>
                 </Col>
             </Row>
+
+            <OwnerSearch
+                summary={data}
+                onOpenLibrary={openLibrary}
+            />
 
             <SitePermissions data={data} onOpenLibrary={openLibrary} />
 
