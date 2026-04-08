@@ -241,6 +241,22 @@ export default function AdminOwners() {
         },
     ];
 
+const handleAssignSecrets = async () => {
+  try {
+    await api.get("/changesecrets");
+
+    message.success("New secrets assigned");
+
+    // ✅ Re-fetch updated data
+    if (campaignId) {
+      await fetchSuperOwners(campaignId);
+    }
+
+  } catch (err) {
+    console.error(err);
+    message.error("Failed to assign secrets");
+  }
+};
 
     return (
         <div style={{ width: "100%" }}>
@@ -277,6 +293,10 @@ export default function AdminOwners() {
 
                 <Button type="primary" disabled={locked}>
                     Send Mass Campaign Email
+                </Button>
+
+                <Button type="primary" disabled={locked} onClick={handleAssignSecrets}>
+                    Assign Secrets
                 </Button>
             </Space>
 
