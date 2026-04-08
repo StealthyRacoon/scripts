@@ -6,14 +6,14 @@ const router = express.Router();
 
 router.post("/campaigns", async (req, res, next) => {
   try {
-    const { site, dueAt } = req.body;
+    const { Name, dueAt } = req.body;
 
     const insert = `
-      INSERT INTO Campaigns (Site, InitiatedAt, DueAt, Status)
-      VALUES (?, datetime('now'), ?, 'pending')
+    INSERT INTO Campaigns (Name, InitiatedAt, DueAt, Status)
+    VALUES (?, datetime('now'), ?, 'pending')
     `;
 
-    const result = await db.query(insert, [site, dueAt || null]);
+    const result = await db.query(insert, [Name, dueAt || null]);
 
     res.status(201).json({
       message: "Campaign created",
