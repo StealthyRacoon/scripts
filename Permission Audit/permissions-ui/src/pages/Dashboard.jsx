@@ -200,7 +200,7 @@ export default function Dashboard() {
                 onOpenLibrary={openLibrary}
             />
 
-            <SitePermissions data={data} onOpenLibrary={openLibrary} />
+            {/* <SitePermissions data={data} onOpenLibrary={openLibrary} /> */}
 
             {selectedLibrary && libraryData && (
                 <LibraryModal
