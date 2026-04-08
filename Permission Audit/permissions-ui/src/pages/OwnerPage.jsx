@@ -78,8 +78,6 @@ export default function OwnerPage() {
 
     const grouped = {};
 
-    // SuperOwner context
-    setSuperOwner(rows[0].superOwner);
 
     rows.forEach((row) => {
       const site = row.URL;
@@ -93,6 +91,11 @@ export default function OwnerPage() {
           permissions: [],
           directCount: 0,
         };
+      }
+
+      if (row.Secret === encodeURIComponent(owner)) {
+        setSuperOwner(row.superOwner);
+
       }
 
       const isDirect = !row.GivenThrough || row.GivenThrough === row.Name;
@@ -140,7 +143,6 @@ export default function OwnerPage() {
       })
     );
 
-  const closeLibraryModal = () => setSelectedLibrary(null);
 
   return (
     <div style={{ padding: 40, fontFamily: "Segoe UI, sans-serif" }}>
@@ -159,7 +161,7 @@ export default function OwnerPage() {
           site={selectedLibrary.site}
           libraryName={selectedLibrary.library}
           libraryData={libraryData}
-          closeModal={closeLibraryModal}
+          closeModal={() => setSelectedLibrary(null)}
           decisions={decisions}
           setDecisions={setDecisions}
           allUsers={allUsers}

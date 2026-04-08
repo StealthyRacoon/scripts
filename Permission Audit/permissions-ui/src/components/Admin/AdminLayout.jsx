@@ -4,8 +4,9 @@ import {
   UserOutlined,
   SettingOutlined,
   UploadOutlined,
+  ProjectOutlined
 } from "@ant-design/icons";
-import { useAppTheme } from "../theme/appTheme";
+import { useAppTheme } from "../../theme/appTheme";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
@@ -16,7 +17,8 @@ export default function AdminLayout({ children }) {
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const location = useLocation();
-
+  
+  const adminSecret = import.meta.env.VITE_ADMIN_STRING
   const [collapsed, setCollapsed] = useState(false);
 
   const isDark = mode === "dark";
@@ -52,22 +54,27 @@ export default function AdminLayout({ children }) {
           onClick={({ key }) => navigate(key)}
           items={[
             {
-              key: "/admin",
+              key: `/${adminSecret}`,
               icon: <DashboardOutlined />,
               label: "Dashboard",
             },
             {
-              key: "/admin/import",
+              key: `/${adminSecret}/campaigns`,
+              icon: <ProjectOutlined />,
+              label: "Campaigns",
+            },
+            {
+              key: `/${adminSecret}/import`,
               icon: <UploadOutlined />,
               label: "Import",
             },
             {
-              key: "/admin/users",
+              key: `/${adminSecret}/owners`,
               icon: <UserOutlined />,
-              label: "Users",
+              label: "Site Owners",
             },
             {
-              key: "/admin/settings",
+              key: `/${adminSecret}/settings`,
               icon: <SettingOutlined />,
               label: "Settings",
             },

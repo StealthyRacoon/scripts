@@ -53,7 +53,7 @@ export default function LibraryModal({
     };
 
 
-
+    // move this to the parent component
     const handleConfirmChanges = async () => {
         const changedRows = (libraryData || []).filter(
             (row) => row.decision != null
@@ -80,6 +80,7 @@ export default function LibraryModal({
             await api.post("/audit", normalizedLog);
             notify.success("Changes submitted!");
         } catch (err) {
+            notify.error(err.response?.data?.message || "Failed to submit changes");
             console.error(err);
         }
 
