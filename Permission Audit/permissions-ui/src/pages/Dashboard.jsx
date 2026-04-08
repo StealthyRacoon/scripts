@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Row, Col, Card, Typography } from "antd";
+import { Row, Col, Card, Typography, Badge } from "antd";
 import api from "../utils/api";
 
 import LibraryModal from "../components/LibraryModal";
@@ -132,14 +132,36 @@ export default function Dashboard() {
     };
 
 
+
+    // const stats = {
+    //     totalSites: summary.sites ? summary.sites.length : 0,
+    //     reviewedSites: progress.reviewed,
+    //     inProgress: progress.inProgress,
+    // };
+
+
     const stats = {
         totalSites: summary.sites ? summary.sites.length : 0,
         reviewedSites: campaigns.filter(c => c.Status === "completed").length,
         inProgress: campaigns.filter(c => c.Status === "pending").length,
     };
 
+
     return (
         <>
+
+            <div style={{ marginBottom: 16 }}>
+                <Badge
+                    color={ "gold"}
+                    text={
+                        <Text type="secondary" style={{ marginLeft: 8 }}>
+                            In progress ({stats.inProgress || 0} / {stats.totalSites})
+                        </Text>
+                    }
+                />
+            </div>
+
+            {/* Change this - total sites is fine, the reviewed and in progress needs to be a live indicator showing whether or no a campaign is in progress */}
             <Row gutter={16} style={{ marginBottom: 16 }}>
                 <Col xs={24} md={8}>
                     <Card styles={{ body: { textAlign: "center" } }}>
@@ -150,6 +172,7 @@ export default function Dashboard() {
                     </Card>
                 </Col>
 
+                {/* These cards need to show how many sites have been reviewed or are in progress in the current campaign */}
                 <Col xs={24} md={8}>
                     <Card styles={{ body: { textAlign: "center" } }}>
                         <Title level={3} style={{ margin: 0, color: "#2e7d32" }}>

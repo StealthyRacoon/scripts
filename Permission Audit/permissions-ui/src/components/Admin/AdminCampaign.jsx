@@ -40,14 +40,14 @@ export default function AdminCampaign() {
   // Add new campaign
   const handleAddCampaign = async () => {
     if (!newSite.trim()) {
-      message.warning("Site name is required");
+      message.warning("Campaign name is required");
       return;
     }
 
     try {
       setAdding(true);
       const res = await api.post("/campaigns", {
-        site: newSite,
+        Name: newSite,
         dueAt: dueAt ? dueAt.format("YYYY-MM-DD HH:mm:ss") : null,
       });
 
@@ -147,7 +147,7 @@ export default function AdminCampaign() {
         confirmLoading={adding} // Only shows loading during API call
       >
         <Input
-          placeholder="Enter site name"
+          placeholder="Enter campaign name"
           value={newSite}
           onChange={e => setNewSite(e.target.value)}
           style={{ marginBottom: 12 }}

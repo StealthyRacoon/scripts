@@ -78,8 +78,9 @@ export default function LibraryModal({
 
         try {
             await api.post("/audit", normalizedLog);
-            notify.loading("Changes submitted!");
+            notify.success("Changes submitted!");
         } catch (err) {
+            notify.error(err.response?.data?.message || "Failed to submit changes");
             console.error(err);
         }
 

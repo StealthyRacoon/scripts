@@ -68,9 +68,9 @@ export default function AdminLayout({ children }) {
               label: "Import",
             },
             {
-              key: "/admin/users",
+              key: "/admin/owners",
               icon: <UserOutlined />,
-              label: "Users",
+              label: "Site Owners",
             },
             {
               key: "/admin/settings",

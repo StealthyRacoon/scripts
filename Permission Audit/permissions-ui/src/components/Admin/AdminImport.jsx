@@ -158,17 +158,19 @@ export default function AdminImport() {
         value={campaignId}
         onChange={(value) => setCampaignId(value)}
         options={campaigns.map((c) => ({
-          
+
           value: c.Id,
           label: (
             <span>
-              <strong>#{c.Id}</strong> — {new Date(c.InitiatedAt).toLocaleDateString()} — {c.completedAt ? <Tag color="green">Complete</Tag>: <Tag color="orange">Pending</Tag>}
-              <span style={{ color: c.status === "Complete" ? "gray" : "green" }}>
-                {c.status}
-              </span>
+              <strong>#{c.Id}</strong> — {
+                new Date(c.InitiatedAt).toLocaleDateString()} —
+              {c.Status === 'complete' ?
+                <Tag color="green">{c.Status}</Tag> :
+                <Tag color="orange">{c.Status}</Tag>}
+
             </span>
           ),
-          disabled: c.status?.toLowerCase() === "complete",
+          disabled: c.Status?.toLowerCase() === "complete",
         }))}
       />
 
