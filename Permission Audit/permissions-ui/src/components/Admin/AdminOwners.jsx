@@ -241,22 +241,33 @@ export default function AdminOwners() {
         },
     ];
 
-const handleAssignSecrets = async () => {
-  try {
-    await api.get("/changesecrets");
+    const handleAssignSecrets = async () => {
+        const proceed = async () => {
 
-    message.success("New secrets assigned");
+            try {
+                await api.get("/changesecrets");
 
-    // ✅ Re-fetch updated data
-    if (campaignId) {
-      await fetchSuperOwners(campaignId);
-    }
+                message.success("New secrets assigned");
 
-  } catch (err) {
-    console.error(err);
-    message.error("Failed to assign secrets");
-  }
-};
+                // ✅ Re-fetch updated data
+                if (campaignId) {
+                    await fetchSuperOwners(campaignId);
+                }
+
+            } catch (err) {
+                console.error(err);
+                message.error("Failed to assign secrets");
+            }
+        }
+
+        if (superOwners) {
+            confirmImport(proceed)
+        }
+        else {
+            await proceed
+        }
+
+    };
 
     return (
         <div style={{ width: "100%" }}>
