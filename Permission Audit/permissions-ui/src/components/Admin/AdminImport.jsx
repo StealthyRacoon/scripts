@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Upload, Button, Progress, Typography, message, Table, Select, Tooltip, Tag } from "antd";
+import { Upload, Button, Progress, Typography, message, Table, Select, Tooltip, Tag, Modal } from "antd";
 import { UploadOutlined, InboxOutlined } from "@ant-design/icons";
 import Papa from "papaparse";
 
@@ -17,6 +17,8 @@ export default function AdminImport() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
   const [campaigns, setCampaigns] = useState([]);
   const [campaignId, setCampaignId] = useState(null);
+
+  
 
   useEffect(() => {
     api.get("/campaigns").then((res) => setCampaigns(res.data));
@@ -73,81 +75,73 @@ export default function AdminImport() {
     setPagination({ current: 1, pageSize: 5 });
   };
 
-  const handleUpload = async () => {
-    if (fileList.length === 0 || tableData.length === 0) {
-      message.warning("Please select a file first");
-      return;
-    }
-    if (!campaignId) {
-      message.warning("Please select a campaign");
-      return;
-    }
 
-    if (fileList.length === 0 || tableData.length === 0) {
-      message.warning("Please select a file first");
-      return;
-    }
+const handleUpload = async () => {
+  if (fileList.length === 0 || tableData.length === 0) {
+    message.warning("Please select a file first");
+    return;
+  }
+  if (!campaignId) {
+    message.warning("Please select a campaign");
+    return;
+  }
 
+  try {
+    // ✅ Check if any existing data for this campaign
+    const existingRes = await api.get("/superowners", { params: { campaignId } });
+    const hasExisting = Array.isArray(existingRes.data) && existingRes.data.length > 0;
 
+    const proceedUpload = async () => {
+      setUploading(true);
+      setProgress(0);
 
-    setUploading(true);
-    setProgress(0);
+      try {
+        const chunkSize = 100;
+        for (let i = 0; i < tableData.length; i += chunkSize) {
+          const chunk = tableData.slice(i, i + chunkSize);
+          const payload = chunk.map((row) => ({
+            URL: row.URL ?? null,
+            Name: row.Name ?? null,
+            Email: row.Email ?? null,
+            campaignId,
+          }));
 
-    try {
-      // Map CSV column names → DB column names
-      const columnMap = {
-        "URL": "URL",
-        "SharePoint Object": "SharePointObject",
-        "Object Type": "ObjectType",
-        "Inherits Permissions": "InheritsPermissions",
-        "Name": "Name",
-        "Sensitivity Label": "SensitivityLabel",
-        "Retention Label": "RetentionLabel",
-        "E-mail": "Email",
-        "Principal Type": "PrincipalType",
-        "Is External User": "IsExternalUser",
-        "Is Deleted": "IsDeleted",
-        "Is Licensed": "IsLicensed",
-        "Sign-in Status": "SignInStatus",
-        "Given Through": "GivenThrough",
-        "Department": "Department",
-        "Job Title": "JobTitle",
-        "Permission": "Permission",
-      };
-
-      const chunkSize = 100;
-
-      for (let i = 0; i < tableData.length; i += chunkSize) {
-        const chunk = tableData.slice(i, i + chunkSize);
-
-        const payload = chunk.map(row => {
-          const mapped = {};
-          Object.entries(columnMap).forEach(([csvKey, dbKey]) => {
-            mapped[dbKey] = row[csvKey] ?? null;
+          await api.post("/superowners", {
+            rows: payload,
+            firstChunk: i === 0,
           });
-          mapped.campaignId = campaignId;
-          return mapped;
-        });
 
-        await api.post("/uploadreport", {
-          rows: payload,
-          firstChunk: i === 0
-        });
+          const percent = Math.round(((i + chunkSize) / tableData.length) * 100);
+          setProgress(Math.min(percent, 100));
+        }
 
-        const percent = Math.round(((i + chunkSize) / tableData.length) * 100);
-        setProgress(Math.min(percent, 100));
+        message.success(`${fileList[0].name} uploaded successfully`);
+        handleRemove();
+      } catch (err) {
+        console.error(err);
+        message.error("Upload failed");
+      } finally {
+        setUploading(false);
       }
+    };
 
-      message.success(`${fileList[0].name} uploaded successfully`);
-      handleRemove();
-    } catch (err) {
-      console.error(err);
-      message.error(err);
-    } finally {
-      setUploading(false);
+    if (hasExisting) {
+      // Show confirmation modal
+      Modal.confirm({
+        title: "Data already exists for this campaign",
+        content: "Uploading will overwrite existing data. Are you sure you want to continue?",
+        okText: "Yes, upload",
+        cancelText: "Cancel",
+        onOk: proceedUpload,
+      });
+    } else {
+      await proceedUpload();
     }
-  };
-
+  } catch (err) {
+    console.error(err);
+    message.error("Failed to check existing data");
+  }
+};
 
   return (
     <div style={{ width: "100%" }}>

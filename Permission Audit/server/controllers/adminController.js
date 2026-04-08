@@ -6,40 +6,50 @@ const { getActiveCampaign } = require("../services/campaignService");
 
 
 router.get("/adminpermissions", async (req, res, next) => {
-
     try {
-        const activeCampaign = await getActiveCampaign();
+        let { campaignId } = req.query;
 
-        if (!activeCampaign) {
-            return res.status(403).json({
-                message: "No audit in progress",
-            });
+        if (!campaignId) {
+            // fallback: get the active campaign if none provided
+            const activeCampaign = await getActiveCampaign();
+            if (!activeCampaign) {
+                return res.status(403).json({ message: "No audit in progress" });
+            }
+            campaignId = activeCampaign.Id;
         }
 
-        const campaignId = activeCampaign.Id;
+        // Ensure campaignId is numeric
+        campaignId = Number(campaignId);
+        if (isNaN(campaignId)) {
+            return res.status(400).json({ message: "Invalid campaignId" });
+        }
 
         const sql = `
-         SELECT
-            so.Name AS superOwner,
-            so.*,
-            sp.*,
-            al.id                AS auditId,
-            al.Decision,
-            al.adminApproved,
-            al.adminApprovedTimestamp,
-            al.timestamp         AS auditTimestamp,
-            al.GroupName,
-            al.Permission        AS auditedPermission,
-            al.campaignId
-        FROM SharePointPermissions sp
-        JOIN SuperOwners so
-            ON sp.URL = so.URL
-        LEFT JOIN AuditLogs al
-            ON al.site = sp.URL
-            AND al.library = sp.SharePointObject
-            AND al.principal = sp.Name;
-        `;
-        const rows = await db.query(sql);
+      SELECT
+        so.Name AS superOwner,
+        so.*,
+        sp.*,
+        al.id                AS auditId,
+        al.Decision,
+        al.adminApproved,
+        al.adminApprovedTimestamp,
+        al.timestamp         AS auditTimestamp,
+        al.GroupName,
+        al.Permission        AS auditedPermission,
+        al.campaignId
+      FROM SharePointPermissions sp
+      JOIN SuperOwners so
+        ON sp.URL = so.URL
+      LEFT JOIN AuditLogs al
+        ON al.site = sp.URL
+        AND al.library = sp.SharePointObject
+        AND al.principal = sp.Name
+        AND al.campaignId = ?
+      WHERE sp.campaignId = ?
+        AND so.campaignId = ?
+    `;
+
+        const rows = await db.query(sql, [campaignId, campaignId, campaignId]);
 
         res.json({ rows, campaignId });
     } catch (err) {
@@ -49,9 +59,11 @@ router.get("/adminpermissions", async (req, res, next) => {
 
 router.get("/adminsites", async (req, res, next) => {
 
+    const campaignId = req.query.campaignId;
+
     try {
-        const sql = `SELECT * FROM SuperOwners`;
-        const rows = await db.query(sql);
+        const sql = `SELECT * FROM SuperOwners WHERE campaignId = ?`;
+        const rows = await db.query(sql, [campaignId]);
         res.json({ sites: rows.map(r => r.URL) });
     } catch (err) {
         next(err);

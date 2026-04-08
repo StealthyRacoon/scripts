@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Row, Col, Card, Typography, Badge } from "antd";
 import api from "../utils/api";
 
@@ -20,7 +20,6 @@ export default function Dashboard() {
 
 
     useEffect(() => {
-        api.get("/adminsites").then((res) => setSummary(res.data));
         api.get("/campaigns").then((res) => setCampaigns(res.data));
         api.get("/users")
             .then((res) => {
@@ -36,6 +35,14 @@ export default function Dashboard() {
 
     }, []);
 
+
+    useEffect(() => {
+        if (!campaignId) return;
+
+        api.get("/adminsites", { params: { campaignId: 5 } }).then((res) => setSummary(res.data));
+
+
+    }, [campaignId]);
 
     const updateDecision = (site, library, idx, newDecision) => {
         setData((prev) => {
@@ -133,16 +140,9 @@ export default function Dashboard() {
 
 
 
-    // const stats = {
-    //     totalSites: summary.sites ? summary.sites.length : 0,
-    //     reviewedSites: progress.reviewed,
-    //     inProgress: progress.inProgress,
-    // };
-
-
     const stats = {
         totalSites: summary.sites ? summary.sites.length : 0,
-        reviewedSites: campaigns.filter(c => c.Status === "completed").length,
+        reviewedSites: campaigns.filter(c => c.Status === "complete").length,
         inProgress: campaigns.filter(c => c.Status === "pending").length,
     };
 
@@ -152,7 +152,7 @@ export default function Dashboard() {
 
             <div style={{ marginBottom: 16 }}>
                 <Badge
-                    color={ "gold"}
+                    color={"gold"}
                     text={
                         <Text type="secondary" style={{ marginLeft: 8 }}>
                             In progress ({stats.inProgress || 0} / {stats.totalSites})
@@ -178,7 +178,7 @@ export default function Dashboard() {
                         <Title level={3} style={{ margin: 0, color: "#2e7d32" }}>
                             {stats.reviewedSites || 0}
                         </Title>
-                        <Text type="secondary">Reviewed (Completed Campaigns)</Text>
+                        <Text type="secondary">Completed Campaigns</Text>
                     </Card>
                 </Col>
 

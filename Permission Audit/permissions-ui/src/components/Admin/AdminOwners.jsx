@@ -151,8 +151,8 @@ export default function AdminOwners() {
 
         try {
             // ✅ Check if any existing SuperOwners for this campaign
-            const existingRes = await api.get(`/superowners`, { params: { campaignId } });
-            const hasExisting = Array.isArray(existingRes.data) && existingRes.data.length > 0;
+            // const existingRes = await api.get(`/superowners`, { params: { campaignId } });
+            const hasExisting = Array.isArray(superOwners) && superOwners.length > 0;
 
             const proceed = async () => {
                 setUploading(true);
@@ -273,6 +273,10 @@ export default function AdminOwners() {
 
                 <Button type="primary" onClick={() => setModalVisible(true)} disabled={locked}>
                     Import CSV
+                </Button>
+
+                <Button type="primary" disabled={locked}>
+                    Send Mass Campaign Email
                 </Button>
             </Space>
 
