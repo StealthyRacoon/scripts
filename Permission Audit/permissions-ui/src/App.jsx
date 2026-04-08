@@ -9,6 +9,8 @@ import AdminOwners from "./components/Admin/AdminOwners";
 
 import { StatusProvider } from "./providers/StatusProvider";
 
+const adminSecret = import.meta.env.VITE_ADMIN_STRING
+
 function App() {
   return (
     <StatusProvider>
@@ -16,10 +18,10 @@ function App() {
         <AppLayout>
           <Routes>
             <Route path="/:owner" element={<OwnerPage />} />
-            <Route path="/admin" element={<Dashboard />} />
-            <Route path="/admin/import" element={<AdminImport />} />
-            <Route path="/admin/campaigns" element={<AdminCampaign />} />
-            <Route path="/admin/owners" element={<AdminOwners />} />
+            <Route path={`/${adminSecret}`} element={<Dashboard />} />
+            <Route path={`/${adminSecret}/import`} element={<AdminImport />} />
+            <Route path={`/${adminSecret}/campaigns`} element={<AdminCampaign />} />
+            <Route path={`/${adminSecret}/owners`} element={<AdminOwners />} />
             <Route
               path="*"
               element={<div style={{ padding: 40 }}>Don't even think about it 👀👀</div>}

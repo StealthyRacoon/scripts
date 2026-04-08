@@ -17,7 +17,8 @@ export default function AdminLayout({ children }) {
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const location = useLocation();
-
+  
+  const adminSecret = import.meta.env.VITE_ADMIN_STRING
   const [collapsed, setCollapsed] = useState(false);
 
   const isDark = mode === "dark";
@@ -53,27 +54,27 @@ export default function AdminLayout({ children }) {
           onClick={({ key }) => navigate(key)}
           items={[
             {
-              key: "/admin",
+              key: `/${adminSecret}`,
               icon: <DashboardOutlined />,
               label: "Dashboard",
             },
             {
-              key: "/admin/campaigns",
+              key: `/${adminSecret}/campaigns`,
               icon: <ProjectOutlined />,
               label: "Campaigns",
             },
             {
-              key: "/admin/import",
+              key: `/${adminSecret}/import`,
               icon: <UploadOutlined />,
               label: "Import",
             },
             {
-              key: "/admin/owners",
+              key: `/${adminSecret}/owners`,
               icon: <UserOutlined />,
               label: "Site Owners",
             },
             {
-              key: "/admin/settings",
+              key: `/${adminSecret}/settings`,
               icon: <SettingOutlined />,
               label: "Settings",
             },

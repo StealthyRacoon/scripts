@@ -3,7 +3,6 @@ import { Row, Col, Card, Typography, Badge } from "antd";
 import api from "../utils/api";
 
 import LibraryModal from "../components/LibraryModal";
-import SitePermissions from "../components/Admin/SitePermissions";
 import OwnerSearch from "../components/OwnerSearch";
 
 const { Title, Text } = Typography;
