@@ -4,7 +4,8 @@ import {
   UserOutlined,
   SettingOutlined,
   UploadOutlined,
-  ProjectOutlined
+  ProjectOutlined,
+  CloudSyncOutlined
 } from "@ant-design/icons";
 import { useAppTheme } from "../../theme/appTheme";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -17,7 +18,7 @@ export default function AdminLayout({ children }) {
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const adminSecret = import.meta.env.VITE_ADMIN_STRING
   const [collapsed, setCollapsed] = useState(false);
 
@@ -72,6 +73,11 @@ export default function AdminLayout({ children }) {
               key: `/${adminSecret}/owners`,
               icon: <UserOutlined />,
               label: "Site Owners",
+            },
+            {
+              key: `/${adminSecret}/reconcile`,
+              icon: <CloudSyncOutlined />,
+              label: "Reconcile",
             },
             {
               key: `/${adminSecret}/settings`,
