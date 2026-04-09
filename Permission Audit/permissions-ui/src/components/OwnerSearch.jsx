@@ -155,7 +155,7 @@ export default function OwnerSearch({ summary, onOpenLibrary }) {
 
               <Tag color={tagConfig.color}>
                 {tagConfig.label}
-                {meta.decided > 0 && ` (${meta.decided})`}
+                {` ${meta.decided > 0 && meta.decided < meta.total ? `(${meta.total - meta.decided})` : ''}`}
               </Tag>
             </Card>
           );
