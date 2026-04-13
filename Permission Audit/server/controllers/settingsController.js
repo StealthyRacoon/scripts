@@ -19,7 +19,7 @@ router.get("/settings", async (req, res, next) => {
 });
 
 
-router.get("/settings/:key", async (req, res, next) => {
+router.get("/settings/config/:key", async (req, res, next) => {
 
     try {
         const { key } = req.params;
@@ -47,8 +47,6 @@ router.get("/settings/:key", async (req, res, next) => {
             iv: row.Iv,
             tag: row.Tag
         });
-
-        console.log(decryptedValue)
 
 
         return res.json({
@@ -103,15 +101,18 @@ router.post("/settings", async (req, res, next) => {
 });
 
 
-router.get("/testcon", async (req, res, next) => {
+router.get("/settings/testcon", async (req, res) => {
+    console.log('triggered')
+
     try {
         const { getAccessToken } = require("../services/msAuth");
         const axios = require("axios");
 
         const token = await getAccessToken();
 
-        const response = await axios.get(
-            "https://graph.microsoft.com/v1.0/users?$top=1",
+        // 1. Test basic Graph access
+        const userResponse = await axios.get(
+            "https://graph.microsoft.com/v1.0/sites?search=*",
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -119,15 +120,33 @@ router.get("/testcon", async (req, res, next) => {
             }
         );
 
+        // 2. Test sites access (IMPORTANT for your use case)
+        // const siteResponse = await axios.get(
+        //     "https://graph.microsoft.com/v1.0/sites?search=*",
+        //     {
+        //         headers: {
+        //             Authorization: `Bearer ${token}`,
+        //         },
+        //     }
+        // );
+
         return res.json({
             success: true,
-            sampleUser: response.data?.value?.[0] || null,
+            checks: {
+                users: true,
+                sites: true,
+            },
+            sampleUser: userResponse.data?.value?.[0] || null,
+            sampleSite: siteResponse.data?.value?.[0] || null,
         });
+
     } catch (err) {
-        return res.status(500).json({
-            success: false,
-            error: err.response?.data || err.message,
-        });
+        // console.log(err)
+        res.json({err})
+        // return res.status(500).json({
+        //     success: false,
+        //     error: err
+        // });
     }
 });
 

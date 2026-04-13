@@ -129,7 +129,7 @@ const SettingsPage = () => {
      * Fetch secret from backend
      */
     const handleReveal = async (key) => {
-        const res = await api.get(`/settings/${key}`, {
+        const res = await api.get(`/settings/config/${key}`, {
             silent: true
         });
 
@@ -155,7 +155,7 @@ const SettingsPage = () => {
             }
 
             const res = await api.post("/settings", secrets);
-            
+
 
             if (!res.data?.success) {
                 throw new Error("Save failed");
@@ -180,19 +180,28 @@ const SettingsPage = () => {
 
             const res = await api.get("/settings/testcon");
 
-            if (res.data?.success) {
+            if (res.statusText === "OK") {
                 notify.success("Connection successful");
+                console.log(res.request.response)
             } else {
-                notify.error("Connection failed");
+                console.log(res)
+                notify.error(
+                    res.data?.error?.message ||
+                    "Connection failed"
+                );
             }
 
         } catch (err) {
             console.error(err);
-            notify.error("Connection test failed");
+            notify.error(
+                err.response?.data?.error?.message ||
+                "Connection test failed"
+            );
         } finally {
             setTesting(false);
         }
     };
+
 
     return (
         <div style={{ maxWidth: 700 }}>
