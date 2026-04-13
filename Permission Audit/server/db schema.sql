@@ -62,7 +62,15 @@ CREATE TABLE SuperOwners (
     FOREIGN KEY (campaignId) REFERENCES Campaigns(Id) ON DELETE CASCADE
 );
 
+CREATE TABLE AdminSettings (
+    Key TEXT PRIMARY KEY NOT NULL,
 
+    Value TEXT NOT NULL,
+    Iv TEXT NOT NULL,
+    Tag TEXT NOT NULL,
+
+    UpdatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+);
 
 -- Current SuperOwners
 INSERT INTO "SuperOwners" ("URL", "Name", "Email", "Secret") VALUES ( 'https://sustainabletimbertasmania.sharepoint.com/teams/teambudgetreview', 'Adrian Pereira', 'Adrian.Pereira@sttas.com.au', '3dfab68b031295d4f001eebccbd2200c3959f0399f5c6bd74f6bf27735f56022');

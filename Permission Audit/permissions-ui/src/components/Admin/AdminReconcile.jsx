@@ -12,13 +12,10 @@ import {
     Modal,
     Space
 } from "antd";
-import { UploadOutlined, InboxOutlined, BellOutlined } from "@ant-design/icons";
-import Papa from "papaparse";
 
 import api from "../../utils/api";
 
-const { Dragger } = Upload;
-const { Text, Title } = Typography;
+const {  Title } = Typography;
 
 export default function AdminReconcile() {
     const [campaigns, setCampaigns] = useState([]);
@@ -80,17 +77,7 @@ export default function AdminReconcile() {
                     }))}
                 />
 
-                <Button type="primary"  >
-                    Import CSV
-                </Button>
-
-                <Button type="primary" >
-                    Send Mass Campaign Email
-                </Button>
-
-                <Button type="primary">
-                    Assign Secrets
-                </Button>
+                
             </Space>
 
 

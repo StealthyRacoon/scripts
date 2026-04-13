@@ -13,6 +13,7 @@ app.use("/api", require("./controllers/superOwnersController"));
 app.use("/api", require("./controllers/auditController"));
 app.use("/api", require("./controllers/campaignController"));
 app.use("/api", require("./controllers/adminController"));
+app.use("/api", require("./controllers/settingsController"));
 
 app.use(express.static(path.join(__dirname, "dist")));
 

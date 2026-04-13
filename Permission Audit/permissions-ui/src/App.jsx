@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import AdminCampaign from "./components/Admin/AdminCampaign";
 import AdminOwners from "./components/Admin/AdminOwners";
 import AdminReconcile from "./components/Admin/AdminReconcile";
+import AdminSettings from "./components/Admin/AdminSettings"
 
 import { StatusProvider } from "./providers/StatusProvider";
 
@@ -24,6 +25,7 @@ function App() {
             <Route path={`/${adminSecret}/campaigns`} element={<AdminCampaign />} />
             <Route path={`/${adminSecret}/owners`} element={<AdminOwners />} />
             <Route path={`/${adminSecret}/reconcile`} element={<AdminReconcile />} />
+            <Route path={`/${adminSecret}/settings`} element={<AdminSettings />} />
             <Route
               path="*"
               element={<div style={{ padding: 40 }}>Don't even think about it 👀👀</div>}

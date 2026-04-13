@@ -26,3 +26,14 @@ Overall, it’s a **permission governance + audit + enforcement platform** that 
 * Append-only audit history
 * Async change execution
 * Reconciliation and discrepancy detection
+
+
+**Reconciliation and Enforcement**
+* SuperOwners will provide their intended permissions which are stored in the auditlog table.
+* These permissions need to be applied in the back end. ASSUMPTION: Any permission approved already exist and therefore don't need to be tested or re-enforced
+* All changes to permissions need to be applied - add/remove users.
+* All changed permission need to be tested to guarantee the accuracy.
+
+
+**Small UI/UX nice to have**
+* Set dark/light mode based on system settings
