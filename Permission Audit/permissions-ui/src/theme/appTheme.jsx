@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { ConfigProvider, theme } from "antd";
 
 const ThemeContext = createContext();
@@ -26,7 +26,23 @@ const darkTheme = {
 };
 
 export function AppThemeProvider({ children }) {
-  const [mode, setMode] = useState("light");
+  const getSystemTheme = () =>
+    window.matchMedia?.("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+
+  const [mode, setMode] = useState(getSystemTheme);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const handleChange = (e) => {
+      setMode(e.matches ? "dark" : "light");
+    };
+
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
 
   const toggleTheme = () => {
     setMode((prev) => (prev === "light" ? "dark" : "light"));

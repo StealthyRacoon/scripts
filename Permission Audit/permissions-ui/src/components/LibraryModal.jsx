@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { Modal, Button, Typography, Collapse, Space } from "antd";
-import { PlusOutlined, RightOutlined, DownOutlined } from "@ant-design/icons";
+import { Modal, Button, Typography, Collapse, Space, Tag } from "antd";
+import { PlusOutlined, RightOutlined, DownOutlined, UserOutlined } from "@ant-design/icons";
 
 import PermissionTable from "./PermissionTable";
 import AddUserModal from "./AddUserModal";
@@ -30,7 +30,7 @@ export default function LibraryModal({
     const [selectedRows, setSelectedRows] = useState({});
     const [showAddUserModal, setShowAddUserModal] = useState(false);
     const [activeGroup, setActiveGroup] = useState(null);
-    
+
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const { notify } = useStatus();
@@ -121,8 +121,23 @@ export default function LibraryModal({
                                                     type="text"
                                                     icon={isExpanded ? <DownOutlined /> : <RightOutlined />}
                                                     onClick={() => toggleGroupExpand(perm, group)}
+                                                    style={{ display: "flex", alignItems: "center", gap: 8 }}
                                                 >
-                                                    {group}
+                                                    <span>{group}</span>
+
+                                                    <Tag
+                                                        icon={<UserOutlined />}
+                                                        color="default"
+                                                        style={{
+                                                            marginLeft: 8,
+                                                            border: "none",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            gap: 4,
+                                                        }}
+                                                    >
+                                                        {rows.length}
+                                                    </Tag>
                                                 </Button>
 
                                                 {isExpanded && (

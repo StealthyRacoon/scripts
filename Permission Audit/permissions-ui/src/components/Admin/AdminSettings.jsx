@@ -43,7 +43,7 @@ const SecretField = ({
 
             const secretValue = await onReveal(name);
 
-            onChange(name, secretValue); // 🔥 state is source of truth
+            onChange(name, secretValue); 
 
         } catch (err) {
             console.error(err);

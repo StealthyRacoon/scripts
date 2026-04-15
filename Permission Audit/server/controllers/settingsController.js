@@ -41,7 +41,6 @@ router.get("/settings/config/:key", async (req, res, next) => {
         const row = rows[0];
 
 
-        // ✅ correct decrypt input
         const decryptedValue = decrypt({
             value: row.Value,
             iv: row.Iv,
@@ -110,9 +109,9 @@ router.get("/settings/testcon", async (req, res) => {
 
         const token = await getAccessToken();
 
-        // 1. Test basic Graph access
+
         const userResponse = await axios.get(
-            "https://graph.microsoft.com/v1.0/sites?search=*",
+            "https://sustainabletimbertasmania.sharepoint.com/teams/DigitalData",
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -120,15 +119,7 @@ router.get("/settings/testcon", async (req, res) => {
             }
         );
 
-        // 2. Test sites access (IMPORTANT for your use case)
-        // const siteResponse = await axios.get(
-        //     "https://graph.microsoft.com/v1.0/sites?search=*",
-        //     {
-        //         headers: {
-        //             Authorization: `Bearer ${token}`,
-        //         },
-        //     }
-        // );
+        
 
         return res.json({
             success: true,
@@ -141,8 +132,8 @@ router.get("/settings/testcon", async (req, res) => {
         });
 
     } catch (err) {
-        // console.log(err)
-        res.json({err})
+        res.json(err)
+
         // return res.status(500).json({
         //     success: false,
         //     error: err
