@@ -106,6 +106,7 @@ export default function OwnerSearch({ summary, onOpenLibrary }) {
 
           const firstLibData = libs[firstLibrary];
           const meta = firstLibData ? getLibraryMeta(firstLibData) : { decided: 0 };
+          const remaining = meta.total - meta.decided;
 
           const tagConfig = {
             "needs-review": { color: "red", label: "Needs Review" },
@@ -155,7 +156,7 @@ export default function OwnerSearch({ summary, onOpenLibrary }) {
 
               <Tag color={tagConfig.color}>
                 {tagConfig.label}
-                {meta.decided > 0 && ` (${meta.decided})`}
+                {remaining > 0 && meta.decided !== 0 && ` (${remaining})`}
               </Tag>
             </Card>
           );
