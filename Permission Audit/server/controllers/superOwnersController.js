@@ -19,38 +19,29 @@ router.get("/superownerspermissions", async (req, res, next) => {
 
         const campaignId = activeCampaign.Id;
 
-        // SELECT 
-        //     so.Name AS superOwner,
-        //     so.*,
-        //     sp.*
-        // FROM SharePointPermissions sp
-        // JOIN SuperOwners so
-        //     ON sp.URL = so.URL
-        // WHERE so.Secret = "?";
-
         const sql = `
          SELECT
-    so.Name AS superOwner,
-    so.*,
-    sp.*,
-    al.id                AS auditId,
-    al.Decision,
-    al.adminApproved,
-    al.adminApprovedTimestamp,
-    al.timestamp         AS auditTimestamp,
-    al.GroupName,
-    al.Permission        AS auditedPermission,
-    al.campaignId
-FROM SharePointPermissions sp
-JOIN SuperOwners so
-    ON sp.URL = so.URL
-LEFT JOIN AuditLogs al
-    ON al.site = sp.URL
-    AND al.library = sp.SharePointObject
-    AND al.principal = sp.Name
---    AND al.UPN = sp.Email
---    AND al.Permission = sp.Permission
-WHERE so.Secret = ?;
+            so.Name AS superOwner,
+            so.*,
+            sp.*,
+            al.id                AS auditId,
+            al.Decision,
+            al.adminApproved,
+            al.adminApprovedTimestamp,
+            al.timestamp         AS auditTimestamp,
+            al.GroupName,
+            al.Permission        AS auditedPermission,
+            al.campaignId
+        FROM SharePointPermissions sp
+        JOIN SuperOwners so
+            ON sp.URL = so.URL
+        LEFT JOIN AuditLogs al
+            ON al.site = sp.URL
+            AND al.library = sp.SharePointObject
+            AND al.principal = sp.Name
+        --    AND al.UPN = sp.Email
+        --    AND al.Permission = sp.Permission
+        WHERE so.Secret = ?;
         `;
 
 
@@ -67,14 +58,14 @@ router.get("/sites", async (req, res, next) => {
     try {
 
         const sql = `
-       SELECT 
-            so.Name AS superOwner,
-            so.*,
-            sp.*
-        FROM SharePointPermissions sp
-        JOIN SuperOwners so
-            ON sp.URL = so.URL
-        `;
+        SELECT 
+                so.Name AS superOwner,
+                so.*,
+                sp.*
+            FROM SharePointPermissions sp
+            JOIN SuperOwners so
+                ON sp.URL = so.URL
+            `;
         // WHERE so.Name = ?
 
         const rows = await db.query(sql);
@@ -213,5 +204,57 @@ router.post("/superowners", async (req, res, next) => {
         next(err);
     }
 });
+
+
+const { sendSingleEmail } = require("../services/emailService");
+
+router.post("/test-email", async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
+        }
+
+        const success = await sendSingleEmail({
+            to: email,
+            subject: "Test Email",
+            html: `
+                <p>This is a test email from your system.</p>
+                <p>If you received this, Microsoft Graph is working ✅</p>
+            `
+        });
+
+        res.json({
+            success,
+            message: "Email sent (or accepted by Microsoft Graph)"
+        });
+
+    } catch (err) {
+        console.error(err.response?.data || err.message);
+        next(err);
+    }
+});
+
+router.post("/sendcampaignemail", async (req, res, next) => {
+    try {
+        const sql = `SELECT DISTINCT Email, secret from SuperOwners`;
+        const rows = await db.query(sql)
+
+        rows.forEach(row => {
+            console.log(row.Email)
+        });
+
+        res.status(200).json({
+            message: "Emails have been sent!"
+
+        })
+
+    }
+    catch (err) {
+        console.error(err.response?.data || err.message);
+        next(err);
+    }
+})
 
 module.exports = router;

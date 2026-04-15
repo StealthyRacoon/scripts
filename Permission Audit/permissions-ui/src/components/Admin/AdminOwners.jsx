@@ -360,6 +360,16 @@ export default function AdminOwners() {
         }
     };
 
+    const handleSendEmail = async () => {
+        try {
+            await api.post("/sendcampaignemail");
+            message.success("Email sent");
+            fetchSuperOwners(campaignId);
+        } catch {
+            message.error("Failed to send email");
+        }
+    }
+
     // =========================
     // UI
     // =========================
@@ -418,7 +428,7 @@ export default function AdminOwners() {
                             Assign Secrets
                         </Button>
 
-                        <Button disabled={locked}>
+                        <Button onClick={handleSendEmail} disabled={locked}>
                             Send Email
                         </Button>
                     </Space>
