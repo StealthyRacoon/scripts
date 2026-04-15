@@ -429,11 +429,6 @@ export default function AdminOwners() {
                         components={{ body: { cell: EditableCell } }}
                         dataSource={filteredData}
                         columns={mergedColumns}
-                        pagination={{
-                            pageSize: 100,
-                            showSizeChanger: true,
-                            pageSizeOptions: ["50", "100", "200", "500"],
-                        }}
                         scroll={{ x: 800 }}
                     />
                 </div>
