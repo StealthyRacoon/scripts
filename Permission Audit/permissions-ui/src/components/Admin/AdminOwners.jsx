@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
     Upload,
     Button,
@@ -10,37 +10,44 @@ import {
     Tooltip,
     Tag,
     Modal,
-    Space
+    Space,
+    Card,
+    Input,
+    Popconfirm
 } from "antd";
-import { UploadOutlined, InboxOutlined, BellOutlined } from "@ant-design/icons";
+import { InboxOutlined, BellOutlined, PlusOutlined, ExportOutlined } from "@ant-design/icons";
 import Papa from "papaparse";
-
 import api from "../../utils/api";
 
 const { Dragger } = Upload;
 const { Text, Title } = Typography;
+const { Search } = Input;
 
 export default function AdminOwners() {
+    const [campaigns, setCampaigns] = useState([]);
+    const [campaignId, setCampaignId] = useState(null);
+    const [locked, setLocked] = useState(false);
+
+    const [superOwners, setSuperOwners] = useState([]);
+    const [editingKey, setEditingKey] = useState("");
+
+    const [searchText, setSearchText] = useState("");
+
     const [fileList, setFileList] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [tableData, setTableData] = useState([]);
     const [columns, setColumns] = useState([]);
-    const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
-    const [campaigns, setCampaigns] = useState([]);
-    const [campaignId, setCampaignId] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
-    const [superOwners, setSuperOwners] = useState([]);
-    const [locked, setLocked] = useState(false);
 
-
+    // =========================
+    // INIT
+    // =========================
 
     useEffect(() => {
-        // Fetch campaigns
         api.get("/campaigns").then((res) => {
             setCampaigns(res.data);
 
-            // Auto-select the latest campaign by InitiatedAt
             const latest = res.data
                 .filter(c => c.Status?.toLowerCase() !== "completed")
                 .sort((a, b) => new Date(b.InitiatedAt) - new Date(a.InitiatedAt))[0];
@@ -53,221 +60,309 @@ export default function AdminOwners() {
     }, []);
 
     useEffect(() => {
-        if (!campaigns || campaigns.length === 0 || !campaignId) return;
+        if (!campaigns.length || !campaignId) return;
 
-        // Find the latest non-completed campaign
         const latestActive = campaigns
             .filter(c => c.Status?.toLowerCase() !== "completed")
             .sort((a, b) => new Date(b.InitiatedAt) - new Date(a.InitiatedAt))[0];
 
-        // Lock if the selected campaign is NOT the latest active one
         setLocked(latestActive ? campaignId !== latestActive.Id : true);
     }, [campaignId, campaigns]);
 
-
-
-    const fetchSuperOwners = async (campaignId) => {
+    const fetchSuperOwners = async (id) => {
         try {
-            const res = await api.get(`/superowners`, { params: { campaignId } });
-            setSuperOwners(Array.isArray(res.data) ? res.data : []);
-        } catch (err) {
-            console.error(err);
+            const res = await api.get("/superowners", { params: { campaignId: id } });
+            setSuperOwners((res.data || []).map((r, i) => ({ key: i, ...r })));
+        } catch {
             message.error("Failed to fetch super owners");
-            setSuperOwners([]);
         }
     };
 
-    const handleBeforeUpload = (file) => {
-        if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
-            message.error("Only CSV files are allowed");
-            return Upload.LIST_IGNORE;
+    // =========================
+    // SEARCH FILTER
+    // =========================
+
+    const filteredData = useMemo(() => {
+        if (!searchText) return superOwners;
+
+        const lower = searchText.toLowerCase();
+
+        return superOwners.filter(r =>
+            (r.Name || "").toLowerCase().includes(lower) ||
+            (r.URL || "").toLowerCase().includes(lower)
+        );
+    }, [searchText, superOwners]);
+
+    // =========================
+    // CRUD
+    // =========================
+
+    const isEditing = (record) => record.key === editingKey;
+
+    const edit = (record) => setEditingKey(record.key);
+
+    const cancel = () => {
+        setEditingKey("");
+        fetchSuperOwners(campaignId);
+    };
+
+    const save = async (record) => {
+        try {
+            await api.post("/updatesuperowner", { ...record, campaignId });
+            message.success("Updated");
+            setEditingKey("");
+            fetchSuperOwners(campaignId);
+        } catch {
+            message.error("Update failed");
         }
-
-        setFileList([file]);
-
-        // Parse CSV
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-                if (results.data.length === 0) {
-                    message.warning("CSV file is empty");
-                    setTableData([]);
-                    setColumns([]);
-                    return;
-                }
-
-                setTableData(
-                    results.data.map((row, idx) => ({ key: idx, ...row }))
-                );
-
-                setColumns(
-                    Object.keys(results.data[0]).filter(key =>
-                        ["URL", "Name", "E-mail"].includes(key)
-                    ).map((key) => ({
-                        title: key,
-                        dataIndex: key,
-                        key,
-                    }))
-                );
-            },
-            error: (err) => {
-                message.error("Failed to parse CSV");
-                console.error(err);
-            },
-        });
-
-        return false; // Prevent auto-upload
     };
 
-    const handleRemove = () => {
-        setFileList([]);
-        setProgress(0);
-        setTableData([]);
-        setColumns([]);
-        setPagination({ current: 1, pageSize: 5 });
+    const handleDelete = async (record) => {
+        try {
+            await api.post("/deletesuperowner", { ...record, campaignId });
+            message.success("Deleted");
+            fetchSuperOwners(campaignId);
+        } catch {
+            message.error("Delete failed");
+        }
     };
+
+    const handleAdd = () => {
+        const newRow = {
+            key: Date.now(),
+            URL: "",
+            Name: "",
+            Email: "",
+            isNew: true
+        };
+
+        setSuperOwners([newRow, ...superOwners]);
+        setEditingKey(newRow.key);
+    };
+
+    const handleCreate = async (record) => {
+        try {
+            await api.post("/addsuperowner", { ...record, campaignId });
+            message.success("Created");
+            setEditingKey("");
+            fetchSuperOwners(campaignId);
+        } catch {
+            message.error("Create failed");
+        }
+    };
+
+    // =========================
+    // EDITABLE CELL
+    // =========================
+
+    const EditableCell = ({ editing, dataIndex, record, children, ...rest }) => (
+        <td {...rest}>
+            {editing ? (
+                <Input
+                    value={record[dataIndex]}
+                    onChange={(e) => {
+                        const newData = [...superOwners];
+                        const index = newData.findIndex(i => i.key === record.key);
+                        newData[index][dataIndex] = e.target.value;
+                        setSuperOwners(newData);
+                    }}
+                />
+            ) : children}
+        </td>
+    );
+
+    // =========================
+    // TABLE COLUMNS
+    // =========================
+
+    const columnsDef = [
+        {
+            title: "URL",
+            dataIndex: "URL",
+            editable: true,
+            sorter: (a, b) => (a.URL || "").localeCompare(b.URL || "")
+        },
+        {
+            title: "Name",
+            dataIndex: "Name",
+            editable: true,
+            sorter: (a, b) => (a.Name || "").localeCompare(b.Name || "")
+        },
+        {
+            title: "Email",
+            dataIndex: "Email",
+            editable: true,
+            sorter: (a, b) => (a.Email || "").localeCompare(b.Email || "")
+        },
+        {
+            title: "Secret",
+            dataIndex: "Secret",
+            align: "center",
+            render: (_, record) => {
+                if (!record.Secret) return "-";
+
+                const url = `${window.location.origin}/${record.Secret}`;
+
+                return (
+                    <Tooltip title="Open secret link">
+                        <Button
+                            type="text"
+                            icon={<ExportOutlined />}
+                            href={url}
+                            target="_blank"
+                        />
+                    </Tooltip>
+                );
+            }
+        },
+        {
+            title: "Reminder",
+            render: () => (
+                <Button type="text" icon={<BellOutlined />} disabled={locked} />
+            )
+        },
+        {
+            title: "Actions",
+            render: (_, record) => {
+                const editable = isEditing(record);
+
+                return editable ? (
+                    <Space>
+                        <Button
+                            type="link"
+                            onClick={() =>
+                                record.isNew ? handleCreate(record) : save(record)
+                            }
+                        >
+                            Save
+                        </Button>
+                        <Button onClick={cancel}>Cancel</Button>
+                    </Space>
+                ) : (
+                    <Space>
+                        <Button
+                            onClick={() => edit(record)}
+                            disabled={editingKey !== ""}
+                        >
+                            Edit
+                        </Button>
+
+                        <Popconfirm
+                            title="Delete this record?"
+                            onConfirm={() => handleDelete(record)}
+                        >
+                            <Button danger>Delete</Button>
+                        </Popconfirm>
+                    </Space>
+                );
+            }
+        }
+    ];
+
+    const mergedColumns = columnsDef.map((col) => {
+        if (!col.editable) return col;
+
+        return {
+            ...col,
+            onCell: (record) => ({
+                record,
+                dataIndex: col.dataIndex,
+                editing: isEditing(record),
+            }),
+        };
+    });
+
+    // =========================
+    // CSV IMPORT
+    // =========================
 
     const confirmImport = (onConfirm) => {
         Modal.confirm({
-            title: "Existing data detected",
-            content: "This campaign already has SuperOwners data. Importing will overwrite existing data. Are you sure you want to continue?",
-            okText: "Yes, overwrite",
-            cancelText: "Cancel",
+            title: "Overwrite existing data?",
+            content: "This will replace all existing SuperOwners for this campaign.",
             okType: "danger",
             onOk: onConfirm,
         });
     };
 
-    const handleUpload = async () => {
-        if (fileList.length === 0 || tableData.length === 0) {
-            message.warning("Please select a file first");
-            return;
-        }
-        if (!campaignId) {
-            message.warning("Please select a campaign");
-            return;
-        }
+    const handleBeforeUpload = (file) => {
+        setFileList([file]);
 
-        try {
-            // ✅ Check if any existing SuperOwners for this campaign
-            // const existingRes = await api.get(`/superowners`, { params: { campaignId } });
-            const hasExisting = Array.isArray(superOwners) && superOwners.length > 0;
-
-            const proceed = async () => {
-                setUploading(true);
-                setProgress(0);
-
-                try {
-                    const chunkSize = 100;
-
-                    for (let i = 0; i < tableData.length; i += chunkSize) {
-                        const chunk = tableData.slice(i, i + chunkSize);
-                        const payload = chunk.map((row) => ({
-                            URL: row.URL ?? null,
-                            Name: row.Name ?? null,
-                            Email: row.Email ?? null,
-                            campaignId,
-                        }));
-
-                        await api.post("/superowners", {
-                            rows: payload,
-                            firstChunk: i === 0,
-                        });
-
-                        const percent = Math.round(((i + chunkSize) / tableData.length) * 100);
-                        setProgress(Math.min(percent, 100));
-                    }
-
-                    message.success(`${fileList[0].name} uploaded successfully`);
-                    handleRemove();
-                } catch (err) {
-                    console.error(err);
-                    message.error("Upload failed");
-                } finally {
-                    setUploading(false);
-                }
-            };
-
-            // ✅ Show confirmation if data exists
-            if (hasExisting) {
-                confirmImport(proceed);
-            } else {
-                await proceed();
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                setTableData(results.data.map((r, i) => ({ key: i, ...r })));
+                setColumns(Object.keys(results.data[0] || {}).map(k => ({
+                    title: k,
+                    dataIndex: k
+                })));
             }
-        } catch (err) {
-            console.error(err);
-            message.error("Failed to check existing data");
-        }
+        });
+
+        return false;
     };
 
-    // Table columns for existing super owners
-    const superOwnerColumns = [
-        {
-            title: "URL",
-            dataIndex: "URL",
-            key: "URL",
-            sorter: (a, b) => (a.URL || "").localeCompare(b.URL || ""),
-            sortDirections: ["ascend", "descend"],
-        },
-        {
-            title: "Name",
-            dataIndex: "Name",
-            key: "Name",
-            sorter: (a, b) => (a.Name || "").localeCompare(b.Name || ""),
-            sortDirections: ["ascend", "descend"],
-        },
-        {
-            title: "Email",
-            dataIndex: "Email",
-            key: "Email",
-            sorter: (a, b) => (a.Email || "").localeCompare(b.Email || ""),
-            sortDirections: ["ascend", "descend"],
-        },
-        {
-            title: "Secret",
-            dataIndex: "Secret",
-            key: "Secret",
-        },
-        {
-            title: "Reminder",
-            dataIndex: "Reminder",
-            key: "Reminder",
-            render: (_, row) => (
-                <Button type="text" style={locked ? { color: "gray" } : { color: "orange" }} disabled={locked}>
-                    <BellOutlined />
-                </Button>
-            ),
-        },
-    ];
+    const handleUpload = async () => {
+        const hasExisting = superOwners.length > 0;
 
-    const handleAssignSecrets = async () => {
         const proceed = async () => {
+            setUploading(true);
 
             try {
-                await api.get("/changesecrets");
+                for (let i = 0; i < tableData.length; i += 100) {
+                    const chunk = tableData.slice(i, i + 100);
 
-                message.success("New secrets assigned");
-
-                // ✅ Re-fetch updated data
-                if (campaignId) {
-                    await fetchSuperOwners(campaignId);
+                    await api.post("/superowners", {
+                        rows: chunk.map(r => ({
+                            URL: r.URL,
+                            Name: r.Name,
+                            Email: r.Email,
+                            campaignId
+                        }))
+                    });
                 }
 
-            } catch (err) {
-                console.error(err);
-                message.error("Failed to assign secrets");
+                message.success("Upload complete");
+                setModalVisible(false);
+                fetchSuperOwners(campaignId);
+            } catch {
+                message.error("Upload failed");
+            } finally {
+                setUploading(false);
             }
-        }
+        };
 
-        if (superOwners) {
-            confirmImport(proceed)
-        }
-        else {
-            await proceed
-        }
-
+        if (hasExisting) confirmImport(proceed);
+        else proceed();
     };
+
+    // =========================
+    // ASSIGN SECRETS
+    // =========================
+
+    const confirmAssignSecrets = () => {
+        Modal.confirm({
+            title: "Assign new secrets?",
+            content: "This will overwrite all existing secrets.",
+            okType: "danger",
+            onOk: handleAssignSecrets
+        });
+    };
+
+    const handleAssignSecrets = async () => {
+        try {
+            await api.get("/changesecrets");
+            message.success("Secrets assigned");
+            fetchSuperOwners(campaignId);
+        } catch {
+            message.error("Failed to assign secrets");
+        }
+    };
+
+    // =========================
+    // UI
+    // =========================
 
     return (
         <div style={{ width: "100%" }}>
@@ -275,115 +370,104 @@ export default function AdminOwners() {
 
             <Space style={{ marginBottom: 16 }}>
                 <Select
-                    placeholder="Select a campaign"
                     style={{ width: 400 }}
                     value={campaignId}
-                    onChange={(value) => {
-                        setCampaignId(value);
-                        fetchSuperOwners(value);
+                    onChange={(val) => {
+                        setCampaignId(val);
+                        fetchSuperOwners(val);
                     }}
-                    options={campaigns.map((c) => ({
+                    options={campaigns.map(c => ({
                         value: c.Id,
                         label: (
-                            <span>
-                                <strong>#{c.Id}</strong> — {
-                                    new Date(c.InitiatedAt).toLocaleDateString()} —
-                                {c.Status === 'complete' ?
-                                    <Tag color="green">{c.Status}</Tag> :
-                                    <Tag color="orange">{c.Status}</Tag>}
-
-                            </span>
-                        ),
-                        // disabled: c.Status?.toLowerCase() === "complete",
+                            <>
+                                #{c.Id} — {new Date(c.InitiatedAt).toLocaleDateString()} —
+                                <Tag color={c.Status === "complete" ? "green" : "orange"}>
+                                    {c.Status}
+                                </Tag>
+                            </>
+                        )
                     }))}
                 />
 
-                <Button type="primary" onClick={() => setModalVisible(true)} disabled={locked}>
-                    Import CSV
-                </Button>
-
-                <Button type="primary" disabled={locked}>
-                    Send Mass Campaign Email
-                </Button>
-
-                <Button type="primary" disabled={locked} onClick={handleAssignSecrets}>
-                    Assign Secrets
-                </Button>
+                <Search
+                    placeholder="Search Name or URL"
+                    allowClear
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 300 }}
+                />
             </Space>
 
-            {/* Table of existing super owners */}
-            <Table
-                dataSource={(superOwners || []).map((row, idx) => ({ key: idx, ...row }))}
-                columns={superOwnerColumns}
-                size="small"
-                scroll={{ x: "max-content" }}
-                style={{ width: "100%" }}
-            />
+            <Card
+                title="Super Owners"
+                extra={
+                    <Space>
+                        <Button onClick={() => setModalVisible(true)} disabled={locked}>
+                            Import CSV
+                        </Button>
 
-            {/* Upload Modal */}
+                        <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={handleAdd}
+                            disabled={locked}
+                        >
+                            Add Owner
+                        </Button>
+
+                        <Button onClick={confirmAssignSecrets} disabled={locked}>
+                            Assign Secrets
+                        </Button>
+
+                        <Button disabled={locked}>
+                            Send Email
+                        </Button>
+                    </Space>
+                }
+            >
+                <div style={{ overflowX: "auto" }}>
+                    <Table
+                        components={{ body: { cell: EditableCell } }}
+                        dataSource={filteredData}
+                        columns={mergedColumns}
+                        pagination={{
+                            pageSize: 100,
+                            showSizeChanger: true,
+                            pageSizeOptions: ["50", "100", "200", "500"],
+                        }}
+                        scroll={{ x: 800 }}
+                    />
+                </div>
+            </Card>
+
             <Modal
                 title="Import Super Owners"
                 open={modalVisible}
                 onCancel={() => setModalVisible(false)}
+                width={800}
                 footer={[
                     <Button key="cancel" onClick={() => setModalVisible(false)}>Cancel</Button>,
-                    <Button
-                        key="upload"
-                        type="primary"
-                        onClick={handleUpload}
-                        disabled={fileList.length === 0 || tableData.length === 0}
-                        loading={uploading}
-                    >
+                    <Button key="upload" type="primary" onClick={handleUpload}>
                         Upload
                     </Button>
                 ]}
-                width={800}
             >
-                {fileList.length === 0 && (
-                    <Dragger
-                        beforeUpload={handleBeforeUpload}
-                        fileList={fileList}
-                        onRemove={handleRemove}
-                        multiple={false}
-                        maxCount={1}
-                        accept=".csv"
-                        style={{ width: "100%" }}
-                    >
-                        <p className="ant-upload-drag-icon">
-                            <InboxOutlined />
-                        </p>
-                        <p className="ant-upload-text">
-                            Click or drag a CSV file to this area
-                        </p>
-                        <p className="ant-upload-hint">CSV files only</p>
-                    </Dragger>
-                )}
+                <Dragger beforeUpload={handleBeforeUpload} fileList={fileList}>
+                    <p>Click or drag CSV</p>
+                </Dragger>
 
-                {fileList.length > 0 && tableData.length > 0 && (
-                    <div style={{ marginTop: 16, width: "100%" }}>
-                        <Text strong>Preview:</Text>
+                {tableData.length > 0 && (
+                    <>
+                        <Text strong>Preview</Text>
                         <Table
                             dataSource={tableData}
                             columns={columns}
-                            pagination={{
-                                ...pagination,
-                                showSizeChanger: true,
-                                pageSizeOptions: ["5", "10", "20", "50"],
-                                onChange: (page, pageSize) =>
-                                    setPagination({ current: page, pageSize }),
-                            }}
                             size="small"
-                            scroll={{ x: "max-content" }}
-                            style={{ marginTop: 8, width: "100%" }}
+                            scroll={{ x: 800 }}
                         />
-                    </div>
+                    </>
                 )}
 
-                {uploading && (
-                    <div style={{ marginTop: 16 }}>
-                        <Progress percent={progress} />
-                    </div>
-                )}
+                {uploading && <Progress percent={progress} />}
             </Modal>
         </div>
     );
