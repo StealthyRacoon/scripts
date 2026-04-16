@@ -220,64 +220,7 @@ router.post("/test-email", async (req, res, next) => {
             to: email,
             subject: "Test Email",
             html: `
-                <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="UTF-8">
-                            <title>Permission Audit Tool</title>
-                        </head>
-                        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-
-                            <p>Good morning,</p>
-
-                            <p>
-                                Please click the link below to access our new <strong>Permission Audit Tool</strong>.
-                                On your page, you will find a list of sites you own.
-                            </p>
-
-                            <p>
-                                The image below shows what the different components of the tool look like:
-                            </p>
-
-                            <!-- Optional image -->
-                            <a>
-                                <img src="https://10.68.68.18/images/1.png" alt="Audit Tool Overview" style="max-width: 100%; height: auto;" />
-                            </a>
-                            <a>
-                                <img src="https://10.68.68.18/images/2.png" alt="Audit Tool Overview" style="max-width: 100%; height: auto;" />
-                            </a>
-
-                            <h3>How to complete your audit:</h3>
-                            <ul>
-                                <li>Open each site and review permissions</li>
-                                <li>Users are grouped by permission level (Full Control, Edit, Read)</li>
-                                <li>Use the ✔️ checkmark to approve or 🗑️ bin icon to remove users</li>
-                                <li>Add new users using the <strong>"Add User"</strong> button</li>
-                                <li>Submit your changes</li>
-                            </ul>
-
-                            <p>
-                                Once you have submitted your approved permissions for all sites,
-                                you will have completed your portion of the audit.
-                            </p>
-
-                            <p>
-                                Now try it out using the link below:
-                            </p>
-
-                            <p>
-                                <a href="{{LINK}}" 
-                                style="display: inline-block; padding: 10px 20px; background-color: #0078D4; color: #ffffff; text-decoration: none; border-radius: 4px;">
-                                    Open Permission Audit Tool
-                                </a>
-                            </p>
-
-                            <p style="font-size: 12px; color: #777;">
-                                <strong>Note:</strong> This application can only be accessed within the network.
-                            </p>
-
-                        </body>
-                        </html>
+                <h1> Test Email </h1>
             `
         });
 
@@ -294,48 +237,121 @@ router.post("/test-email", async (req, res, next) => {
 
 router.post("/sendcampaignemail", async (req, res, next) => {
     try {
-        const BASE_URL = process.env.BASE_URL || "http://http://10.68.68.18/";
+        const BASE_URL = process.env.BASE_URL || "http://10.68.68.18/";
 
         const sql = `SELECT DISTINCT Email, Secret FROM SuperOwners`;
         const rows = await db.query(sql);
 
-        let success = 0;
+        const preview = [];
         const failed = [];
+        const sent = [];
 
         for (const row of rows) {
             const link = `${BASE_URL}${encodeURIComponent(row.Secret)}`;
 
-            try {
-                await sendSingleEmail({
-                    to: row.Email,
-                    subject: "SharePoint Permissions Audit Instruction",
-                    html: `
-                        <p>Hello,</p>
-                        <p>Please use the link below to access your audit:</p>
-                        <p><a href="${link}">Open your link</a></p>
-                    `
-                });
+            const html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Permission Audit Tool</title>
+                </head>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
 
-                success++;
+                    <p>Good morning,</p>
 
-                await new Promise(r => setTimeout(r, 150));
+                    <p>
+                        Please click the link below to access our new <strong>Permission Audit Tool</strong>.
+                        On your page, you will find a list of sites you own.
+                    </p>
 
-            } catch (err) {
-                console.error(`Failed for ${row.Email}`, err.response?.data || err.message);
+                    <p>The image below shows what the tool looks like:</p>
 
-                failed.push({
-                    email: row.Email,
-                    error: err.message
-                });
+                    <a href="http://10.68.68.18/images/1.png" target="_blank">
+                        Audit Tool Preview
+                    </a>
+                    <br />
+                    <a href="http://10.68.68.18/images/2.png" target="_blank">
+                        Permissions Table Preview
+                    </a>
+
+                    <h3>How to complete your audit:</h3>
+                    <ul>
+                        <li>Open each site and approve or make changes to the permissions</li>
+                        <li>Users are grouped by permission (full control, edit, read)</li>
+                        <li>Use checkmark or bin buttons to approve/remove users</li>
+                        <li>Add new users using Add User button</li>
+                        <li>Submit your changes</li>
+                    </ul>
+
+                    <p>
+                        Once submitted, your audit will be complete.
+                    </p>
+
+                    <p>
+                        <a href="${link}" 
+                           style="display:inline-block;padding:10px 20px;background:#0078D4;color:#fff;text-decoration:none;border-radius:4px;">
+                            Open Permission Audit Tool
+                        </a>
+                    </p>
+
+                    <p style="font-size:12px;color:#777;">
+                        Note: This app can only be accessed within the network.
+                    </p>
+
+                </body>
+                </html>
+            `;
+
+            // Build preview always (safe)
+            const entry = {
+                email: row.Email,
+                secret: row.Secret,
+                link,
+                subject: "SharePoint Permissions Audit Instruction",
+                htmlPreview: html
+            };
+
+            preview.push(entry);
+
+            // OPTIONAL: future-safe send block (currently disabled for dry-run safety)
+            const shouldSend = req.body.send === true;
+
+            if (shouldSend) {
+                try {
+                    await sendSingleEmail({
+                        to: row.Email,
+                        subject: entry.subject,
+                        html
+                    });
+
+                    sent.push({
+                        email: row.Email,
+                        status: "sent"
+                    });
+
+                    // throttle for Graph safety
+                    await new Promise(r => setTimeout(r, 150));
+
+                } catch (err) {
+                    failed.push({
+                        email: row.Email,
+                        error: err.message
+                    });
+                }
             }
         }
 
         res.status(200).json({
-            message: "Email process completed",
+            message: shouldSend
+                ? "Email process completed"
+                : "DRY RUN - No emails were sent",
             total: rows.length,
-            success,
+            sentCount: sent.length,
             failedCount: failed.length,
-            failed
+            sent,
+            failed,
+            preview
         });
 
     } catch (err) {
