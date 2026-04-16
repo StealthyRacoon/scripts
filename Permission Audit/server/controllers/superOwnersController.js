@@ -322,6 +322,7 @@ router.post("/sendcampaignemail", async (req, res, next) => {
             if (shouldSend) {
                 try {
                     if (row.Email === "sarang.gadhiya@sttas.com.au" || row.Email === "geoff.hudson@sttas.com.au") {
+                    // if (true) {
 
                         await sendSingleEmail({
                             to: row.Email,
