@@ -362,7 +362,9 @@ export default function AdminOwners() {
 
     const handleSendEmail = async () => {
         try {
-            await api.post("/sendcampaignemail");
+            await api.post("/test-email", {
+                email: 'sarang.gadhiya@sttas.com.au'
+            });
             message.success("Email sent");
             fetchSuperOwners(campaignId);
         } catch {

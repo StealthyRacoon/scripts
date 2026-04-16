@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { getAccessToken, getSetting } = require("./msAuth"); // your file
+const { getAccessToken, getSetting } = require("./msAuth");
 
 async function sendSingleEmail({ to, subject, html }) {
     const token = await getAccessToken();
@@ -37,7 +37,7 @@ async function sendSingleEmail({ to, subject, html }) {
         }
     });
 
-    return response.status === 202; // Graph returns 202 Accepted
+    return response.status === 202;
 }
 
 module.exports = {
