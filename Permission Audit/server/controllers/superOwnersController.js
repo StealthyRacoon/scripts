@@ -237,7 +237,7 @@ router.post("/test-email", async (req, res, next) => {
 
 router.post("/sendcampaignemail", async (req, res, next) => {
     try {
-        const BASE_URL = process.env.BASE_URL || "http://10.68.68.18/";
+        const BASE_URL = "http://10.68.68.18/";
 
         const sql = `SELECT DISTINCT Email, Secret FROM SuperOwners`;
         const rows = await db.query(sql);
@@ -245,6 +245,8 @@ router.post("/sendcampaignemail", async (req, res, next) => {
         const preview = [];
         const failed = [];
         const sent = [];
+        const shouldSend = req.body.shouldSend;
+
 
         for (const row of rows) {
             const link = `${BASE_URL}${encodeURIComponent(row.Secret)}`;
@@ -315,23 +317,27 @@ router.post("/sendcampaignemail", async (req, res, next) => {
             preview.push(entry);
 
             // OPTIONAL: future-safe send block (currently disabled for dry-run safety)
-            const shouldSend = req.body.send === true;
 
+            console.log(shouldSend)
             if (shouldSend) {
                 try {
-                    await sendSingleEmail({
-                        to: row.Email,
-                        subject: entry.subject,
-                        html
-                    });
+                    if (row.Email === "sarang.gadhiya@sttas.com.au" || row.Email === "geoff.hudson@sttas.com.au") {
 
-                    sent.push({
-                        email: row.Email,
-                        status: "sent"
-                    });
+                        await sendSingleEmail({
+                            to: row.Email,
+                            subject: entry.subject,
+                            html
+                        });
 
-                    // throttle for Graph safety
-                    await new Promise(r => setTimeout(r, 150));
+                        sent.push({
+                            email: row.Email,
+                            status: "sent"
+                        });
+
+                        // throttle for Graph safety
+                        await new Promise(r => setTimeout(r, 150));
+                    }
+
 
                 } catch (err) {
                     failed.push({

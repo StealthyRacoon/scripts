@@ -362,7 +362,9 @@ export default function AdminOwners() {
 
     const handleSendEmail = async () => {
         try {
-            const res = await api.post("/sendcampaignemail");
+            const res = await api.post("/sendcampaignemail", {
+                shouldSend: false
+            });
 
             console.log(res)
 
