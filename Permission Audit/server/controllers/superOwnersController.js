@@ -19,38 +19,29 @@ router.get("/superownerspermissions", async (req, res, next) => {
 
         const campaignId = activeCampaign.Id;
 
-        // SELECT 
-        //     so.Name AS superOwner,
-        //     so.*,
-        //     sp.*
-        // FROM SharePointPermissions sp
-        // JOIN SuperOwners so
-        //     ON sp.URL = so.URL
-        // WHERE so.Secret = "?";
-
         const sql = `
          SELECT
-    so.Name AS superOwner,
-    so.*,
-    sp.*,
-    al.id                AS auditId,
-    al.Decision,
-    al.adminApproved,
-    al.adminApprovedTimestamp,
-    al.timestamp         AS auditTimestamp,
-    al.GroupName,
-    al.Permission        AS auditedPermission,
-    al.campaignId
-FROM SharePointPermissions sp
-JOIN SuperOwners so
-    ON sp.URL = so.URL
-LEFT JOIN AuditLogs al
-    ON al.site = sp.URL
-    AND al.library = sp.SharePointObject
-    AND al.principal = sp.Name
---    AND al.UPN = sp.Email
---    AND al.Permission = sp.Permission
-WHERE so.Secret = ?;
+            so.Name AS superOwner,
+            so.*,
+            sp.*,
+            al.id                AS auditId,
+            al.Decision,
+            al.adminApproved,
+            al.adminApprovedTimestamp,
+            al.timestamp         AS auditTimestamp,
+            al.GroupName,
+            al.Permission        AS auditedPermission,
+            al.campaignId
+        FROM SharePointPermissions sp
+        JOIN SuperOwners so
+            ON sp.URL = so.URL
+        LEFT JOIN AuditLogs al
+            ON al.site = sp.URL
+            AND al.library = sp.SharePointObject
+            AND al.principal = sp.Name
+        --    AND al.UPN = sp.Email
+        --    AND al.Permission = sp.Permission
+        WHERE so.Secret = ?;
         `;
 
 
@@ -67,14 +58,14 @@ router.get("/sites", async (req, res, next) => {
     try {
 
         const sql = `
-       SELECT 
-            so.Name AS superOwner,
-            so.*,
-            sp.*
-        FROM SharePointPermissions sp
-        JOIN SuperOwners so
-            ON sp.URL = so.URL
-        `;
+        SELECT 
+                so.Name AS superOwner,
+                so.*,
+                sp.*
+            FROM SharePointPermissions sp
+            JOIN SuperOwners so
+                ON sp.URL = so.URL
+            `;
         // WHERE so.Name = ?
 
         const rows = await db.query(sql);
@@ -210,6 +201,145 @@ router.post("/superowners", async (req, res, next) => {
             inserted: rowsWithData.length,
         });
     } catch (err) {
+        next(err);
+    }
+});
+
+
+const { sendSingleEmail } = require("../services/emailService");
+
+router.post("/test-email", async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
+        }
+
+        const success = await sendSingleEmail({
+            to: email,
+            subject: "Test Email",
+            html: `
+                <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>Permission Audit Tool</title>
+                        </head>
+                        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+
+                            <p>Good morning,</p>
+
+                            <p>
+                                Please click the link below to access our new <strong>Permission Audit Tool</strong>.
+                                On your page, you will find a list of sites you own.
+                            </p>
+
+                            <p>
+                                The image below shows what the different components of the tool look like:
+                            </p>
+
+                            <!-- Optional image -->
+                            <a>
+                                <img src="https://10.68.68.18/images/1.png" alt="Audit Tool Overview" style="max-width: 100%; height: auto;" />
+                            </a>
+                            <a>
+                                <img src="https://10.68.68.18/images/2.png" alt="Audit Tool Overview" style="max-width: 100%; height: auto;" />
+                            </a>
+
+                            <h3>How to complete your audit:</h3>
+                            <ul>
+                                <li>Open each site and review permissions</li>
+                                <li>Users are grouped by permission level (Full Control, Edit, Read)</li>
+                                <li>Use the ✔️ checkmark to approve or 🗑️ bin icon to remove users</li>
+                                <li>Add new users using the <strong>"Add User"</strong> button</li>
+                                <li>Submit your changes</li>
+                            </ul>
+
+                            <p>
+                                Once you have submitted your approved permissions for all sites,
+                                you will have completed your portion of the audit.
+                            </p>
+
+                            <p>
+                                Now try it out using the link below:
+                            </p>
+
+                            <p>
+                                <a href="{{LINK}}" 
+                                style="display: inline-block; padding: 10px 20px; background-color: #0078D4; color: #ffffff; text-decoration: none; border-radius: 4px;">
+                                    Open Permission Audit Tool
+                                </a>
+                            </p>
+
+                            <p style="font-size: 12px; color: #777;">
+                                <strong>Note:</strong> This application can only be accessed within the network.
+                            </p>
+
+                        </body>
+                        </html>
+            `
+        });
+
+        res.json({
+            success,
+            message: "Email sent (or accepted by Microsoft Graph)"
+        });
+
+    } catch (err) {
+        console.error(err.response?.data || err.message);
+        next(err);
+    }
+});
+
+router.post("/sendcampaignemail", async (req, res, next) => {
+    try {
+        const BASE_URL = process.env.BASE_URL || "http://http://10.68.68.18/";
+
+        const sql = `SELECT DISTINCT Email, Secret FROM SuperOwners`;
+        const rows = await db.query(sql);
+
+        let success = 0;
+        const failed = [];
+
+        for (const row of rows) {
+            const link = `${BASE_URL}${encodeURIComponent(row.Secret)}`;
+
+            try {
+                await sendSingleEmail({
+                    to: row.Email,
+                    subject: "SharePoint Permissions Audit Instruction",
+                    html: `
+                        <p>Hello,</p>
+                        <p>Please use the link below to access your audit:</p>
+                        <p><a href="${link}">Open your link</a></p>
+                    `
+                });
+
+                success++;
+
+                await new Promise(r => setTimeout(r, 150));
+
+            } catch (err) {
+                console.error(`Failed for ${row.Email}`, err.response?.data || err.message);
+
+                failed.push({
+                    email: row.Email,
+                    error: err.message
+                });
+            }
+        }
+
+        res.status(200).json({
+            message: "Email process completed",
+            total: rows.length,
+            success,
+            failedCount: failed.length,
+            failed
+        });
+
+    } catch (err) {
+        console.error(err.response?.data || err.message);
         next(err);
     }
 });

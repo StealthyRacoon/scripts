@@ -221,42 +221,42 @@ export default function AdminOwners() {
                 <Button type="text" icon={<BellOutlined />} disabled={locked} />
             )
         },
-        {
-            title: "Actions",
-            render: (_, record) => {
-                const editable = isEditing(record);
+        // {
+        //     title: "Actions",
+        //     render: (_, record) => {
+        //         const editable = isEditing(record);
 
-                return editable ? (
-                    <Space>
-                        <Button
-                            type="link"
-                            onClick={() =>
-                                record.isNew ? handleCreate(record) : save(record)
-                            }
-                        >
-                            Save
-                        </Button>
-                        <Button onClick={cancel}>Cancel</Button>
-                    </Space>
-                ) : (
-                    <Space>
-                        <Button
-                            onClick={() => edit(record)}
-                            disabled={editingKey !== ""}
-                        >
-                            Edit
-                        </Button>
+        //         return editable ? (
+        //             <Space>
+        //                 <Button
+        //                     type="link"
+        //                     onClick={() =>
+        //                         record.isNew ? handleCreate(record) : save(record)
+        //                     }
+        //                 >
+        //                     Save
+        //                 </Button>
+        //                 <Button onClick={cancel}>Cancel</Button>
+        //             </Space>
+        //         ) : (
+        //             <Space>
+        //                 <Button
+        //                     onClick={() => edit(record)}
+        //                     disabled={editingKey !== ""}
+        //                 >
+        //                     Edit
+        //                 </Button>
 
-                        <Popconfirm
-                            title="Delete this record?"
-                            onConfirm={() => handleDelete(record)}
-                        >
-                            <Button danger>Delete</Button>
-                        </Popconfirm>
-                    </Space>
-                );
-            }
-        }
+        //                 <Popconfirm
+        //                     title="Delete this record?"
+        //                     onConfirm={() => handleDelete(record)}
+        //                 >
+        //                     <Button danger>Delete</Button>
+        //                 </Popconfirm>
+        //             </Space>
+        //         );
+        //     }
+        // }
     ];
 
     const mergedColumns = columnsDef.map((col) => {
@@ -360,6 +360,18 @@ export default function AdminOwners() {
         }
     };
 
+    const handleSendEmail = async () => {
+        try {
+            await api.post("/test-email", {
+                email: 'sarang.gadhiya@sttas.com.au'
+            });
+            message.success("Email sent");
+            fetchSuperOwners(campaignId);
+        } catch {
+            message.error("Failed to send email");
+        }
+    }
+
     // =========================
     // UI
     // =========================
@@ -418,7 +430,7 @@ export default function AdminOwners() {
                             Assign Secrets
                         </Button>
 
-                        <Button disabled={locked}>
+                        <Button onClick={handleSendEmail} disabled={locked}>
                             Send Email
                         </Button>
                     </Space>

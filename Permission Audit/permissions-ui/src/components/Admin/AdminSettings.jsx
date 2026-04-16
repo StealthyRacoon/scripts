@@ -149,10 +149,10 @@ const SettingsPage = () => {
                 )
             );
 
-            if (!Object.keys(filtered).length) {
-                notify.info("No changes to save");
-                return;
-            }
+            // if (!Object.keys(filtered).length) {
+            //     notify.info("No changes to save");
+            //     return;
+            // }
 
             const res = await api.post("/settings", secrets);
 

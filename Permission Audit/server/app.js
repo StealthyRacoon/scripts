@@ -16,6 +16,7 @@ app.use("/api", require("./controllers/adminController"));
 app.use("/api", require("./controllers/settingsController"));
 
 app.use(express.static(path.join(__dirname, "dist")));
+app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 // SPA fallback (FIXED)
 app.get("/*rest", (req, res) => {
