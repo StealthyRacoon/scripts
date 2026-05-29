@@ -15,7 +15,7 @@ import {
     Input,
     Popconfirm
 } from "antd";
-import { InboxOutlined, BellOutlined, PlusOutlined, ExportOutlined } from "@ant-design/icons";
+import { InboxOutlined, BellOutlined, PlusOutlined, ExportOutlined, SnippetsOutlined } from "@ant-design/icons";
 import Papa from "papaparse";
 import api from "../../utils/api";
 
@@ -197,6 +197,7 @@ export default function AdminOwners() {
         {
             title: "Secret",
             dataIndex: "Secret",
+            editable: true,
             align: "center",
             render: (_, record) => {
                 if (!record.Secret) return "-";
@@ -204,14 +205,27 @@ export default function AdminOwners() {
                 const url = `${window.location.origin}/${record.Secret}`;
 
                 return (
-                    <Tooltip title="Open secret link">
-                        <Button
-                            type="text"
-                            icon={<ExportOutlined />}
-                            href={url}
-                            target="_blank"
-                        />
-                    </Tooltip>
+                    <Space>
+                        <Tooltip title="Open secret link">
+                            <Button
+                                type="text"
+                                icon={<ExportOutlined />}
+                                href={url}
+                                target="_blank"
+                            />
+                        </Tooltip>
+
+                        <Tooltip title="Copy secret">
+                            <Button
+                                type="text"
+                                icon={<SnippetsOutlined />}
+                                onClick={() => {
+                                    navigator.clipboard.writeText(record.Secret);
+                                    message.success("Secret copied");
+                                }}
+                            />
+                        </Tooltip>
+                    </Space>
                 );
             }
         },
@@ -221,42 +235,42 @@ export default function AdminOwners() {
                 <Button type="text" icon={<BellOutlined />} disabled={locked} />
             )
         },
-        // {
-        //     title: "Actions",
-        //     render: (_, record) => {
-        //         const editable = isEditing(record);
+        {
+            title: "Actions",
+            render: (_, record) => {
+                const editable = isEditing(record);
 
-        //         return editable ? (
-        //             <Space>
-        //                 <Button
-        //                     type="link"
-        //                     onClick={() =>
-        //                         record.isNew ? handleCreate(record) : save(record)
-        //                     }
-        //                 >
-        //                     Save
-        //                 </Button>
-        //                 <Button onClick={cancel}>Cancel</Button>
-        //             </Space>
-        //         ) : (
-        //             <Space>
-        //                 <Button
-        //                     onClick={() => edit(record)}
-        //                     disabled={editingKey !== ""}
-        //                 >
-        //                     Edit
-        //                 </Button>
+                return editable ? (
+                    <Space>
+                        <Button
+                            type="link"
+                            onClick={() =>
+                                record.isNew ? handleCreate(record) : save(record)
+                            }
+                        >
+                            Save
+                        </Button>
+                        <Button onClick={cancel}>Cancel</Button>
+                    </Space>
+                ) : (
+                    <Space>
+                        <Button
+                            onClick={() => edit(record)}
+                            disabled={editingKey !== ""}
+                        >
+                            Edit
+                        </Button>
 
-        //                 <Popconfirm
-        //                     title="Delete this record?"
-        //                     onConfirm={() => handleDelete(record)}
-        //                 >
-        //                     <Button danger>Delete</Button>
-        //                 </Popconfirm>
-        //             </Space>
-        //         );
-        //     }
-        // }
+                        <Popconfirm
+                            title="Delete this record?"
+                            onConfirm={() => handleDelete(record)}
+                        >
+                            <Button danger>Delete</Button>
+                        </Popconfirm>
+                    </Space>
+                );
+            }
+        }
     ];
 
     const mergedColumns = columnsDef.map((col) => {
@@ -444,6 +458,7 @@ export default function AdminOwners() {
                         components={{ body: { cell: EditableCell } }}
                         dataSource={filteredData}
                         columns={mergedColumns}
+                        size="small"
                         scroll={{ x: 800 }}
                     />
                 </div>
@@ -471,7 +486,6 @@ export default function AdminOwners() {
                         <Table
                             dataSource={tableData}
                             columns={columns}
-                            size="small"
                             scroll={{ x: 800 }}
                         />
                     </>
